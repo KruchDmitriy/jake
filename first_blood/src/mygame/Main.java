@@ -4,6 +4,10 @@ import com.jme3.app.SimpleApplication;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
+import com.jme3.math.Vector2f;
+import com.jme3.scene.Mesh;
+import com.jme3.util.BufferUtils;
+import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Box;
@@ -21,14 +25,41 @@ public class Main extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
-        Box b = new Box(1, 1, 1);
+        Mesh mesh = new Mesh();
+        Vector3f [] vertices = new Vector3f[4];
+        vertices[0] = new Vector3f(-5,5,-5);
+        vertices[1] = new Vector3f(5,5,-5);
+        vertices[2] = new Vector3f(-5,5,5);
+        vertices[3] = new Vector3f(5,5,5);
+        
+        Vector2f[] texCoord = new Vector2f[4];
+        texCoord[0] = new Vector2f(0,0);
+        texCoord[1] = new Vector2f(1,0);
+        texCoord[2] = new Vector2f(0,1);
+        texCoord[3] = new Vector2f(1,1);
+        
+        int [] indexes = { 2,0,1, 1,3,2 };
+        
+        mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
+        mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
+        mesh.setBuffer(Type.Index,    3, BufferUtils.createIntBuffer(indexes));
+        mesh.updateBound();
+        
+        Geometry geo = new Geometry("OurMesh", mesh); // using our custom mesh object
+        Material mat = new Material(assetManager, 
+            "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.setColor("Color", ColorRGBA.Blue);
+        geo.setMaterial(mat);
+        rootNode.attachChild(geo);
+        
+        /*Box b = new Box(1, 1, 1);
         Geometry geom = new Geometry("Box", b);
 
-        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        mat.setColor("Color", ColorRGBA.Blue);
-        geom.setMaterial(mat);
+        Material mater = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        mater.setColor("Color", ColorRGBA.Blue);
+        geom.setMaterial(mater);
 
-        rootNode.attachChild(geom);
+        rootNode.attachChild(geom);*/
     }
 
     @Override
