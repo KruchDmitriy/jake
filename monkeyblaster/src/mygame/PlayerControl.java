@@ -16,7 +16,6 @@ import com.jme3.scene.control.AbstractControl;
 public class PlayerControl extends AbstractControl {
     private int screenWidth, screenHeight;
     
-    // is the player currently moving?
     public boolean up, down, left, right;
     // speed of the player
     private float speed = 800f;
@@ -24,7 +23,7 @@ public class PlayerControl extends AbstractControl {
     private float lastRotation;
     
     public PlayerControl(int width, int height) {
-        this.screenWidth =  width;
+        this.screenWidth  = width;
         this.screenHeight = height;
     }
     
