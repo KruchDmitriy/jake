@@ -29,9 +29,11 @@ public class MonkeyBlasterMain extends SimpleApplication
     private long bulletCooldown;
     private long enemySpawnCooldown;
     private float enemySpawnChance = 80;
+    private long spawnCooldownBlackHole;
 
     private Node bulletNode;
     private Node enemyNode;
+    private Node blackHoleNode;
 
     private Sound sound;
 
@@ -79,8 +81,11 @@ public class MonkeyBlasterMain extends SimpleApplication
         bulletNode = new Node("bullets");
 
         enemyNode = new Node("enemies");
-        guiNode.attachChild(enemyNode);
 
+        blackHoleNode = new Node("black holes");
+
+        guiNode.attachChild(enemyNode);
+        guiNode.attachChild(blackHoleNode);
         guiNode.attachChild(bulletNode);
         guiNode.attachChild(player);
 
@@ -102,7 +107,9 @@ public class MonkeyBlasterMain extends SimpleApplication
     public void simpleUpdate(float tpf) {
         if ((Boolean) player.getUserData("alive")) {
             spawnEnemies();
+            spawnBlackHoles();
             handleCollisions();
+            handleGravity(tpf);
         } else if ((System.currentTimeMillis() -
                 (Long)player.getUserData("dieTime")) > 4000f) {
             // spawn player
@@ -285,6 +292,38 @@ public class MonkeyBlasterMain extends SimpleApplication
                 }
             }
         }
+
+        // is something colliding with a black hole?
+        for (int i = 0; i < blackHoleNode.getQuantity(); i++) {
+            Spatial blackHole = blackHoleNode.getChild(i);
+            if ((Boolean) blackHole.getUserData("active")) {
+                // player
+                if (checkCollision(player, blackHole)) {
+                    killPlayer();
+                }
+
+                // enemies
+                for (int j = 0; j < enemyNode.getQuantity(); j++) {
+                    if (checkCollision(enemyNode.getChild(j), blackHole)) {
+                        enemyNode.detachChildAt(j);
+                    }
+                }
+
+                // bullets
+                for (int j = 0; j < bulletNode.getQuantity(); j++) {
+                    if (checkCollision(bulletNode.getChild(j), blackHole)) {
+                        bulletNode.detachChildAt(j);
+                        blackHole.getControl(BlackHoleControl.class).wasShot();
+                        if (blackHole.getControl(
+                                BlackHoleControl.class).isDead()) {
+                            blackHoleNode.detachChild(blackHole);
+                            sound.explosion();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private boolean checkCollision(Spatial a, Spatial b) {
@@ -301,5 +340,77 @@ public class MonkeyBlasterMain extends SimpleApplication
         player.setUserData("alive", false);
         player.setUserData("dieTime", System.currentTimeMillis());
         enemyNode.detachAllChildren();
+        blackHoleNode.detachAllChildren();
+    }
+
+    private void spawnBlackHoles() {
+        if (blackHoleNode.getQuantity() < 2) {
+            if (System.currentTimeMillis() - spawnCooldownBlackHole > 10f) {
+                spawnCooldownBlackHole = System.currentTimeMillis();
+                if (new Random().nextInt(1000) == 0) {
+                    createBlackHole();
+                }
+            }
+        }
+    }
+
+    private void createBlackHole() {
+        Spatial blackHole = getSpatial("Black Hole");
+        blackHole.setLocalTranslation(getSpawnPosition());
+        blackHole.addControl(new BlackHoleControl());
+        blackHole.setUserData("active", false);
+        blackHoleNode.attachChild(blackHole);
+    }
+
+    private void handleGravity(float tpf) {
+        for (int i = 0; i < blackHoleNode.getQuantity(); i++) {
+            Spatial blackHole = blackHoleNode.getChild(i);
+            if (!(Boolean)blackHole.getUserData("active")) {
+                continue;
+            }
+            int radius = 250;
+
+            // check player
+            if (isNearby(player, blackHole, radius)) {
+                applyGravity(blackHole, player, tpf);
+            }
+
+            // check bullets
+            for (int j = 0; j < bulletNode.getQuantity(); j++) {
+                Spatial bullet = bulletNode.getChild(j);
+                if (isNearby(bullet, blackHole, radius)) {
+                    applyGravity(blackHole, bullet, tpf);
+                }
+            }
+        }
+    }
+
+    private boolean isNearby(Spatial a, Spatial b, float distance) {
+        Vector3f pos_a = a.getLocalTranslation();
+        Vector3f pos_b = b.getLocalTranslation();
+        return (pos_a.distanceSquared(pos_b) <= distance * distance);
+    }
+
+    private void applyGravity(Spatial blackHole, Spatial target, float tpf) {
+        Vector3f diff = blackHole.getLocalTranslation().subtract(
+                target.getLocalTranslation());
+        Vector3f gravity = diff.normalize().multLocal(tpf);
+        float distance = diff.length();
+
+        if (target.getName().equals("Player")) {
+            gravity.multLocal(250f / distance);
+            target.getControl(PlayerControl.class).applyGravity(
+                    gravity.mult(80f));
+        } else if (target.getName().equals("Bullet")) {
+            gravity.multLocal(250f / distance);
+            target.getControl(BulletControl.class).applyGravity(
+                    gravity.mult(-0.8f));
+        } else if (target.getName().equals("Seeker")) {
+            target.getControl(SeekerControl.class).applyGravity(
+                    gravity.mult(150000f));
+        } else if (target.getName().equals("Wanderer")) {
+            target.getControl(WandererControl.class).applyGravity(
+                    gravity.mult(150000f));
+        }
     }
 }

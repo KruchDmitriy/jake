@@ -78,6 +78,10 @@ public class WandererControl extends AbstractControl {
         }
     }
 
+    public void applyGravity(Vector3f gravity) {
+        velocity.addLocal(gravity);
+    }
+
     @Override
     protected void controlRender(RenderManager rm, ViewPort vp) {}
 }

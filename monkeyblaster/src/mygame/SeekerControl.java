@@ -22,13 +22,13 @@ public class SeekerControl extends AbstractControl {
     private Spatial player;
     private Vector3f velocity;
     private long spawnTime;
-    
+
     public SeekerControl(Spatial player) {
         this.player = player;
         velocity = new Vector3f(0f, 0f, 0f);
         spawnTime = System.currentTimeMillis();
     }
-    
+
     @Override
     protected void controlUpdate(float tpf) {
         if ((Boolean) spatial.getUserData("active")) {
@@ -41,7 +41,7 @@ public class SeekerControl extends AbstractControl {
             velocity.addLocal(playerDirection);
             velocity.multLocal(0.8f);
             spatial.move(velocity.mult(tpf * 0.1f));
-            
+
             // rotate the seeker
             if (velocity != Vector3f.ZERO) {
                 spatial.rotateUpTo(velocity.normalize());
@@ -52,14 +52,18 @@ public class SeekerControl extends AbstractControl {
             if (dif >= 1000f) {
                 spatial.setUserData("active", true);
             }
-            
+
             ColorRGBA color = new ColorRGBA(1f, 1f, 1f, dif / 1000f);
             Node spatialNode = (Node)spatial;
             Picture pic = (Picture) spatialNode.getChild("Seeker");
             pic.getMaterial().setColor("Color", color);
         }
     }
-    
+
+    public void applyGravity(Vector3f gravity) {
+        velocity.addLocal(gravity);
+    }
+
     @Override
     protected void controlRender(RenderManager rm, ViewPort vp) {}
 }
