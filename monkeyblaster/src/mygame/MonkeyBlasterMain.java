@@ -1,6 +1,7 @@
 package mygame;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.cursors.plugins.JmeCursor;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
@@ -31,11 +32,15 @@ public class MonkeyBlasterMain extends SimpleApplication
     private float enemySpawnChance = 80;
     private long spawnCooldownBlackHole;
 
+    private boolean gameOver = false;
+
     private Node bulletNode;
     private Node enemyNode;
     private Node blackHoleNode;
 
     private Sound sound;
+
+    private HUD hud;
 
     public static void main(String[] args) {
         MonkeyBlasterMain app = new MonkeyBlasterMain();
@@ -99,6 +104,12 @@ public class MonkeyBlasterMain extends SimpleApplication
         guiViewPort.addProcessor(fpp);
         guiViewPort.setClearColor(true);
 
+        hud = new HUD(assetManager, guiNode,
+                settings.getWidth(), settings.getHeight());
+        hud.reset();
+        inputManager.setMouseCursor(
+                (JmeCursor) assetManager.loadAsset("Textures/Pointer.ico"));
+
         sound = new Sound(assetManager);
         sound.startMusic();
     }
@@ -110,8 +121,10 @@ public class MonkeyBlasterMain extends SimpleApplication
             spawnBlackHoles();
             handleCollisions();
             handleGravity(tpf);
+            hud.update();
         } else if ((System.currentTimeMillis() -
-                (Long)player.getUserData("dieTime")) > 4000f) {
+                (Long)player.getUserData("dieTime")) > 4000f
+                && !gameOver) {
             // spawn player
             player.setLocalTranslation(
                     settings.getWidth() / 2f,
@@ -285,6 +298,13 @@ public class MonkeyBlasterMain extends SimpleApplication
             for (int j = 0; j < bulletNode.getQuantity(); j++) {
                 if (checkCollision(enemyNode.getChild(i),
                         bulletNode.getChild(j))) {
+                    // add points depending on the type of enemy
+                    if (enemyNode.getChild(i).getName().equals("Seeker")) {
+                        hud.addPoints(2);
+                    } else if (enemyNode.getChild(i).getName().equals(
+                            "Wanderer")) {
+                        hud.addPoints(1);
+                    }
                     enemyNode.detachChildAt(i);
                     bulletNode.detachChildAt(j);
                     sound.explosion();
@@ -335,6 +355,10 @@ public class MonkeyBlasterMain extends SimpleApplication
     }
 
     private void killPlayer() {
+        if (!hud.removeLife()) {
+            hud.endGame();
+            gameOver = true;
+        }
         player.removeFromParent();
         player.getControl(PlayerControl.class).reset();
         player.setUserData("alive", false);
