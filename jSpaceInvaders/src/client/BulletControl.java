@@ -14,43 +14,45 @@ import com.jme3.scene.control.AbstractControl;
  * @author dmitry
  */
 public class BulletControl extends AbstractControl {
-    private int screenWidth, screenHeight;
+    DataManager dm;
 
-    private float speed = 1100f;
     public Vector3f direction;
-    private float rotation;
 
-    public BulletControl(Vector3f direction,
+
+    public BulletControl(DataManager dm, Vector3f direction,
             int screenWidth, int screenHeight) {
+        this.dm = dm;
         this.direction = direction;
-        this.screenWidth = screenWidth;
-        this.screenHeight = screenHeight;
     }
 
     @Override
     protected void controlUpdate(float tpf) {
         // movement
-        spatial.move(direction.mult(speed * tpf));
-
-        // roration
-        float actualRotation = ClientMain.getAngleFromVector(direction);
-        if (actualRotation != rotation) {
-            spatial.rotate(0, 0, actualRotation - rotation);
-            rotation = actualRotation;
-        }
-
-        // check boundaries
-        Vector3f loc = spatial.getLocalTranslation();
-        if (loc.x > screenWidth ||
-            loc.y > screenHeight ||
-            loc.x < 0 ||
-            loc.y < 0) {
+        String msg = "";
+        msg = dm.FindRecord((Integer)spatial.getUserData("objid"),
+                 DataManager.MessageCode.BulletControlUpdate.value());
+        if (msg.equals(""))
+            return;   
+        
+        String[] split = msg.split(" ");
+        float x = Float.parseFloat(split[0]);
+        float y = Float.parseFloat(split[1]);
+        float z = Float.parseFloat(split[2]);
+        spatial.setLocalTranslation(x,y,z);
+        
+        float r = Float.parseFloat(split[3]);
+        spatial.rotate(0, 0, r);
+        
+        msg = dm.FindRecord((Integer)spatial.getUserData("objid"),
+                 DataManager.MessageCode.BulletDie.value());
+        if (msg.equals(""))
+            return;
+        else
             spatial.removeFromParent();
-        }
     }
 
     public void applyGravity(Vector3f gravity) {
-        direction.addLocal(gravity);
+        
     }
 
     @Override

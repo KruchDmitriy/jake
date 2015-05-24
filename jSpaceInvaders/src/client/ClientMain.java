@@ -153,7 +153,6 @@ public class ClientMain extends SimpleApplication
             spawnEnemies();
             spawnBlackHoles();
             handleCollisions();
-            handleGravity(tpf);
         } else if ((System.currentTimeMillis() -
                 (Long)player.getUserData("dieTime")) > 4000f
                 && !gameOver) {
@@ -280,7 +279,7 @@ public class ClientMain extends SimpleApplication
                 DataManager.MessageCode.SpawnFunction.value(),
                 DataManager.MessageCode.CreateWanderer.value());
         for (int i = 0; i < newWanderers.size(); i++) {
-            createSeeker(newWanderers.get(i));
+            createWanderer(newWanderers.get(i));
         }
         
     }
@@ -302,94 +301,71 @@ public class ClientMain extends SimpleApplication
         sound.spawn();
     }
 
-    private void createWanderer() {
+    private void createWanderer(String msg) {
+        String[] split = msg.split(" ");
+        int id = Integer.parseInt(split[0]);
+        float x = Float.parseFloat(split[1]);
+        float y = Float.parseFloat(split[2]);
+        float z = Float.parseFloat(split[3]);
+        
         Spatial wanderer = getSpatial("Wanderer");
-        wanderer.setLocalTranslation(getSpawnPosition());
-        wanderer.addControl(new WandererControl(settings.getWidth(),
-                settings.getHeight()));
+        wanderer.setLocalTranslation(new Vector3f(x,y,z));
+        wanderer.addControl(new WandererControl(dm));
         wanderer.setUserData("active", false);
+        wanderer.setUserData("objid", id);
         enemyNode.attachChild(wanderer);
         sound.spawn();
     }
 
-    private Vector3f getSpawnPosition() {
-        Vector3f pos;
-        do {
-            pos = new Vector3f(new Random().nextInt(settings.getWidth()),
-                    new Random().nextInt(settings.getHeight()), 0);
-        } while (pos.distanceSquared(player.getLocalTranslation()) < 8000);
-        return pos;
-    }
-
     private void handleCollisions() {
-        // should the player die?
-        for (int i = 0; i < enemyNode.getQuantity(); i++) {
-            if ((Boolean) enemyNode.getChild(i).getUserData("active")) {
-                if (checkCollision(player, enemyNode.getChild(i))) {
-                    killPlayer();
-                    sound.explosion();
-                    return;
-                }
-            }
-
-            // should an enemy die?
-            for (int j = 0; j < bulletNode.getQuantity(); j++) {
-                if (checkCollision(enemyNode.getChild(i),
-                        bulletNode.getChild(j))) {
-                    // add points depending on the type of enemy
-                    if (enemyNode.getChild(i).getName().equals("Seeker")) {
+        String pDie = dm.FindRecord(
+                DataManager.MessageCode.HandleCollision.value(),
+                DataManager.MessageCode.PlayerDie.value());
+        if (!pDie.equals(""))
+        {
+            killPlayer();
+            sound.explosion();
+            return;
+        }
+        
+        List<String> enemyDies = dm.FindAllRecords(
+                DataManager.MessageCode.HandleCollision.value(),
+                DataManager.MessageCode.EnemyDie.value());
+        
+        for (int i = 0; i < enemyDies.size(); i++)
+        {
+            int n = Integer.parseInt(enemyDies.get(i));
+            if (enemyNode.getChild(n).getName().equals("Seeker")) {
                         hud.addPoints(2);
-                    } else if (enemyNode.getChild(i).getName().equals(
+                    } else if (enemyNode.getChild(n).getName().equals(
                             "Wanderer")) {
                         hud.addPoints(1);
                     }
-                    enemyNode.detachChildAt(i);
-                    bulletNode.detachChildAt(j);
-                    sound.explosion();
-                    break;
-                }
-            }
+            sound.explosion();
+            enemyNode.detachChildAt(n);
         }
-
-        // is something colliding with a black hole?
-        for (int i = 0; i < blackHoleNode.getQuantity(); i++) {
-            Spatial blackHole = blackHoleNode.getChild(i);
-            if ((Boolean) blackHole.getUserData("active")) {
-                // player
-                if (checkCollision(player, blackHole)) {
-                    killPlayer();
-                }
-
-                // enemies
-                for (int j = 0; j < enemyNode.getQuantity(); j++) {
-                    if (checkCollision(enemyNode.getChild(j), blackHole)) {
-                        enemyNode.detachChildAt(j);
-                    }
-                }
-
-                // bullets
-                for (int j = 0; j < bulletNode.getQuantity(); j++) {
-                    if (checkCollision(bulletNode.getChild(j), blackHole)) {
-                        bulletNode.detachChildAt(j);
-                        blackHole.getControl(BlackHoleControl.class).wasShot();
-                        if (blackHole.getControl(
-                                BlackHoleControl.class).isDead()) {
-                            blackHoleNode.detachChild(blackHole);
-                            sound.explosion();
-                            break;
-                        }
-                    }
-                }
-            }
+        
+        List<String> bulletsDies = dm.FindAllRecords(
+                DataManager.MessageCode.HandleCollision.value(),
+                DataManager.MessageCode.BulletDie.value());
+        
+        for (int i = 0; i < bulletsDies.size(); i++)
+        {
+            int n = Integer.parseInt(bulletsDies.get(i));
+            enemyNode.detachChildAt(n);
         }
-    }
-
-    private boolean checkCollision(Spatial a, Spatial b) {
-        float distance = a.getLocalTranslation().distance(
-                b.getLocalTranslation());
-        float maxDistance = (Float)a.getUserData("radius") +
-                (Float)b.getUserData("radius");
-        return distance <= maxDistance;
+        
+        List<String> blackHoleDies = dm.FindAllRecords(
+                DataManager.MessageCode.HandleCollision.value(),
+                DataManager.MessageCode.BlackHoleDie.value());
+        
+        for (int i = 0; i < blackHoleDies.size(); i++)
+        {
+            int n = Integer.parseInt(blackHoleDies.get(i));
+            enemyNode.detachChildAt(n);
+            sound.explosion();
+        }
+       
     }
 
     private void killPlayer() {
@@ -406,73 +382,26 @@ public class ClientMain extends SimpleApplication
     }
 
     private void spawnBlackHoles() {
-        if (blackHoleNode.getQuantity() < 2) {
-            if (System.currentTimeMillis() - spawnCooldownBlackHole > 10f) {
-                spawnCooldownBlackHole = System.currentTimeMillis();
-                if (new Random().nextInt(1000) == 0) {
-                    createBlackHole();
-                }
-            }
+        List<String> newBlackHoles = dm.FindAllRecords(
+                DataManager.MessageCode.SpawnFunction.value(),
+                DataManager.MessageCode.CreateBlackHole.value());
+        for (int i = 0; i < newBlackHoles.size(); i++) {
+            createBlackHole(newBlackHoles.get(i));
         }
     }
 
-    private void createBlackHole() {
+    private void createBlackHole(String msg) {
+        String[] split = msg.split(" ");
+        int id = Integer.parseInt(split[0]);
+        float x = Float.parseFloat(split[1]);
+        float y = Float.parseFloat(split[2]);
+        float z = Float.parseFloat(split[3]);
+        
+        
         Spatial blackHole = getSpatial("Black Hole");
-        blackHole.setLocalTranslation(getSpawnPosition());
-        blackHole.addControl(new BlackHoleControl());
+        blackHole.setLocalTranslation(new Vector3f(x,y,z));
+        blackHole.addControl(new BlackHoleControl(dm));
         blackHole.setUserData("active", false);
         blackHoleNode.attachChild(blackHole);
-    }
-
-    private void handleGravity(float tpf) {
-        for (int i = 0; i < blackHoleNode.getQuantity(); i++) {
-            Spatial blackHole = blackHoleNode.getChild(i);
-            if (!(Boolean)blackHole.getUserData("active")) {
-                continue;
-            }
-            int radius = 250;
-
-            // check player
-            if (isNearby(player, blackHole, radius)) {
-                applyGravity(blackHole, player, tpf);
-            }
-
-            // check bullets
-            for (int j = 0; j < bulletNode.getQuantity(); j++) {
-                Spatial bullet = bulletNode.getChild(j);
-                if (isNearby(bullet, blackHole, radius)) {
-                    applyGravity(blackHole, bullet, tpf);
-                }
-            }
-        }
-    }
-
-    private boolean isNearby(Spatial a, Spatial b, float distance) {
-        Vector3f pos_a = a.getLocalTranslation();
-        Vector3f pos_b = b.getLocalTranslation();
-        return (pos_a.distanceSquared(pos_b) <= distance * distance);
-    }
-
-    private void applyGravity(Spatial blackHole, Spatial target, float tpf) {
-        Vector3f diff = blackHole.getLocalTranslation().subtract(
-                target.getLocalTranslation());
-        Vector3f gravity = diff.normalize().multLocal(tpf);
-        float distance = diff.length();
-
-        if (target.getName().equals("Player")) {
-            gravity.multLocal(250f / distance);
-            target.getControl(PlayerControl.class).applyGravity(
-                    gravity.mult(80f));
-        } else if (target.getName().equals("Bullet")) {
-            gravity.multLocal(250f / distance);
-            target.getControl(BulletControl.class).applyGravity(
-                    gravity.mult(-0.8f));
-        } else if (target.getName().equals("Seeker")) {
-            target.getControl(SeekerControl.class).applyGravity(
-                    gravity.mult(150000f));
-        } else if (target.getName().equals("Wanderer")) {
-            target.getControl(WandererControl.class).applyGravity(
-                    gravity.mult(150000f));
-        }
     }
 }

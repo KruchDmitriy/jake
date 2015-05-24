@@ -16,10 +16,12 @@ import com.jme3.ui.Picture;
  * @author dmitry
  */
 public class BlackHoleControl extends AbstractControl {
+    DataManager dm;
     private long spawnTime;
     private int hitpoints;
 
-    public BlackHoleControl() {
+    public BlackHoleControl(DataManager dm) {
+        this.dm =dm;
         spawnTime = System.currentTimeMillis();
         hitpoints = 10;
     }
@@ -31,14 +33,19 @@ public class BlackHoleControl extends AbstractControl {
         } else {
             // handle the "active" status
             long dif = System.currentTimeMillis() - spawnTime;
-            if (dif >= 1000f) {
-                spatial.setUserData("active", true);
-            }
 
             ColorRGBA color = new ColorRGBA(1f, 1f, 1f, dif/1000f);
             Node spatialNode = (Node)spatial;
             Picture pic = (Picture) spatialNode.getChild("Black Hole");
             pic.getMaterial().setColor("Color", color);
+            
+            String msg = "";
+            msg = dm.FindRecord((Integer)spatial.getUserData("objid"),
+                     DataManager.MessageCode.WandererControlActive.value());
+            if (msg.equals(""))
+                return;   
+            else
+                spatial.setUserData("active", true);
         }
     }
 

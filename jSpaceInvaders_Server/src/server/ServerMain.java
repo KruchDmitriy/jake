@@ -51,6 +51,7 @@ public class ServerMain extends SimpleApplication {
     
     private int seekerRadius;
     private int wandererRadius;
+    private int blackHoleRadius;
     
     private boolean gameOver = false;
 
@@ -281,7 +282,7 @@ public class ServerMain extends SimpleApplication {
                 + " " + String.valueOf(tr.y)
                 + " " + String.valueOf(tr.z);
 
-        SendMessage(
+        dm.SendMessage(
                 DataManager.MessageCode.SpawnFunction.value(),
                 DataManager.MessageCode.CreateSeeker.value(),
                 msg);
@@ -293,7 +294,7 @@ public class ServerMain extends SimpleApplication {
     private void createWanderer() {
         Spatial wanderer = new Node("Wanderer");
         wanderer.setLocalTranslation(getSpawnPosition());
-        wanderer.addControl(new WandererControl(width, height));
+        wanderer.addControl(new WandererControl(dm,width, height));
         wanderer.setUserData("active", false);
         wanderer.setUserData("radius", wandererRadius);
         wanderer.setUserData("objid", ++ObjectsCount);
@@ -306,7 +307,7 @@ public class ServerMain extends SimpleApplication {
                 + " " + String.valueOf(tr.y)
                 + " " + String.valueOf(tr.z);
 
-        SendMessage(
+        dm.SendMessage(
                 DataManager.MessageCode.SpawnFunction.value(),
                 DataManager.MessageCode.CreateWanderer.value(),
                 msg);
@@ -330,7 +331,11 @@ public class ServerMain extends SimpleApplication {
             if ((Boolean) enemyNode.getChild(i).getUserData("active")) {
                 if (checkCollision(player, enemyNode.getChild(i))) {
                     killPlayer();
-                 
+                    dm.SendMessage(
+                            DataManager.MessageCode.HandleCollision.value(),
+                            DataManager.MessageCode.PlayerDie.value(),
+                            "playerDie");
+                    
                     return;
                 }
             }
@@ -349,6 +354,15 @@ public class ServerMain extends SimpleApplication {
                     enemyNode.detachChildAt(i);
                     bulletNode.detachChildAt(j);
                     
+                    dm.SendMessage(
+                            DataManager.MessageCode.HandleCollision.value(),
+                            DataManager.MessageCode.EnemyDie.value(),
+                            String.valueOf(i));
+                    dm.SendMessage(
+                            DataManager.MessageCode.HandleCollision.value(),
+                            DataManager.MessageCode.BulletDie.value(),
+                            String.valueOf(j));
+                    
                     break;
                 }
             }
@@ -361,12 +375,21 @@ public class ServerMain extends SimpleApplication {
                 // player
                 if (checkCollision(player, blackHole)) {
                     killPlayer();
+                    dm.SendMessage(
+                            DataManager.MessageCode.HandleCollision.value(),
+                            DataManager.MessageCode.PlayerDie.value(),
+                            "playerDie");
+                    return;
                 }
 
                 // enemies
                 for (int j = 0; j < enemyNode.getQuantity(); j++) {
                     if (checkCollision(enemyNode.getChild(j), blackHole)) {
                         enemyNode.detachChildAt(j);
+                         dm.SendMessage(
+                            DataManager.MessageCode.HandleCollision.value(),
+                            DataManager.MessageCode.EnemyDie.value(),
+                            String.valueOf(j));
                     }
                 }
 
@@ -374,11 +397,20 @@ public class ServerMain extends SimpleApplication {
                 for (int j = 0; j < bulletNode.getQuantity(); j++) {
                     if (checkCollision(bulletNode.getChild(j), blackHole)) {
                         bulletNode.detachChildAt(j);
+                         dm.SendMessage(
+                            DataManager.MessageCode.HandleCollision.value(),
+                            DataManager.MessageCode.BulletDie.value(),
+                            String.valueOf(j));
                         blackHole.getControl(BlackHoleControl.class).wasShot();
                         if (blackHole.getControl(
                                 BlackHoleControl.class).isDead()) {
                             blackHoleNode.detachChild(blackHole);
-                           
+                            
+                            dm.SendMessage(
+                                DataManager.MessageCode.HandleCollision.value(),
+                                DataManager.MessageCode.BlackHoleDie.value(),
+                                String.valueOf(j));
+                            
                             break;
                         }
                     }
@@ -416,10 +448,26 @@ public class ServerMain extends SimpleApplication {
     }
 
     private void createBlackHole() {
-        Spatial blackHole = getSpatial("Black Hole");
+        Spatial blackHole = new Node("Black Hole");
         blackHole.setLocalTranslation(getSpawnPosition());
-        blackHole.addControl(new BlackHoleControl());
+        blackHole.addControl(new BlackHoleControl(dm));
         blackHole.setUserData("active", false);
+        blackHole.setUserData("radius", blackHoleRadius);
+        blackHole.setUserData("objid", ++ObjectsCount);
+        
+        // Send spawnPosition and Objects count
+        int id = blackHole.getUserData("objid");
+        Vector3f tr = blackHole.getLocalTranslation();
+        String msg = String.valueOf(id)
+                + " " + String.valueOf(tr.x)
+                + " " + String.valueOf(tr.y)
+                + " " + String.valueOf(tr.z);
+
+        SendMessage(
+                DataManager.MessageCode.SpawnFunction.value(),
+                DataManager.MessageCode.CreateBlackHole.value(),
+                msg);
+        
         blackHoleNode.attachChild(blackHole);
     }
 
@@ -474,21 +522,5 @@ public class ServerMain extends SimpleApplication {
             target.getControl(WandererControl.class).applyGravity(
                     gravity.mult(150000f));
         }
-    }
-    
-    public void SendMessage(long owner, long msgid, String message)
-    {
-        synchronized (outmutex) {
-                try {
-                    out.writeLong(0);
-                    out.writeLong(owner);
-                    out.writeLong(msgid);
-                    out.writeUTF(message);
-
-                } catch (IOException ex) {
-                    
-                }
-                outmutex.notify();
-            }
     }
 }

@@ -33,17 +33,27 @@ public class DataManager implements Runnable {
         
         
         SpawnFunction(00011),
+        HandleCollision(00012),
         
         CreateSeeker(00101),
         CreateWanderer(00102),
+        CreateBlackHole(00103),
         
         PlayerControlUpdate(01000),
+        PlayerDie(01001),
+        
+        BulletControlUpdate(02000),
+        BulletDie(02001),
+        EnemyDie(02700),
         
         SeekerControlUpdate(03000),
         SeekerControlActive(03001),
         
         WandererControlUpdate(04000),
-        WandererControlActive(04001);
+        WandererControlActive(04001),
+        
+        BlackHoleControlActive(05000),
+        BlackHoleDie(05001);
         
         private int value;
         

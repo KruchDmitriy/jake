@@ -66,9 +66,10 @@ public class SeekerControl extends AbstractControl {
             long dif = System.currentTimeMillis() - spawnTime;
             if (dif >= 1000f) {
                 spatial.setUserData("active", true);
-            }
-            dm.SendMessage((Integer)spatial.getUserData("objid"), 
+                dm.SendMessage((Integer)spatial.getUserData("objid"), 
                     DataManager.MessageCode.SeekerControlActive.value(), "active");
+            }
+            
         }
     }
 
