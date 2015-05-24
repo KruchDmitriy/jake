@@ -34,7 +34,7 @@ public class ServerMain extends SimpleApplication {
     public static DataInputStream in;
     public static DataOutputStream out;
     
-    public static DataManager ds;
+    public static DataManager dm;
     public static Object outmutex;
     
     public static int width;
@@ -68,7 +68,7 @@ public class ServerMain extends SimpleApplication {
             in = new DataInputStream(sin);
             out = new DataOutputStream(sout);
         } catch(Exception x) {}
-        ds = new DataManager(in,out);
+        dm = new DataManager(in,out);
         outmutex = new Object();
         ObjectsCount = 100;
         ServerMain app = new ServerMain();
@@ -82,7 +82,7 @@ public class ServerMain extends SimpleApplication {
         String msg = "";
         boolean notfind = true;
         while (notfind) {
-            msg = ds.FindRecord(1, 1);
+            msg = dm.FindRecord(1, 1);
             if (!msg.equals(""))
                 notfind = false;
         };
@@ -97,7 +97,7 @@ public class ServerMain extends SimpleApplication {
         
         notfind = true;
         while (notfind) {
-            msg = ds.FindRecord(1, 2);
+            msg = dm.FindRecord(1, 2);
             if (!msg.equals(""))
                 notfind = false;
         };
@@ -252,26 +252,7 @@ public class ServerMain extends SimpleApplication {
 
             if (enemyNode.getQuantity() < 50) {
                 if (new Random().nextInt((int)enemySpawnChance) == 0) {
-                    Spatial seeker = new Node("Seeker");
-                    seeker.setLocalTranslation(getSpawnPosition());
-                    seeker.addControl(new SeekerControl(player));
-                    seeker.setUserData("active", false);
-                    seeker.setUserData("radius", seekerRadius);
-                    seeker.setUserData("objid", ObjectsCount++);
-                    
-                    // Send spawnPosition and Objects count
-                    int id = seeker.getUserData("objid");
-                    Vector3f tr = seeker.getLocalTranslation();
-                    String msg = String.valueOf(id) + " " + String.valueOf(tr.x)
-                            + " " + String.valueOf(tr.y) +
-                            " " + String.valueOf(tr.z);
-                    
-                    SendMessage(
-                            DataManager.MessageCode.SpawnFunction.value(),
-                            DataManager.MessageCode.CreateSeeker.value(),
-                            msg);
-                    
-                    enemyNode.attachChild(seeker);
+                    createSeeker();
                 }
                 if (new Random().nextInt((int)enemySpawnChance) == 0) {
                     createWanderer();
@@ -285,20 +266,51 @@ public class ServerMain extends SimpleApplication {
     }
 
     private void createSeeker() {
-        Spatial seeker = getSpatial("Seeker");
+        Spatial seeker = new Node("Seeker");
         seeker.setLocalTranslation(getSpawnPosition());
-        seeker.addControl(new SeekerControl(player));
+        seeker.addControl(new SeekerControl(player,dm));
         seeker.setUserData("active", false);
+        seeker.setUserData("radius", seekerRadius);
+        seeker.setUserData("objid", ++ObjectsCount);
+
+        // Send spawnPosition and Objects count
+        int id = seeker.getUserData("objid");
+        Vector3f tr = seeker.getLocalTranslation();
+        String msg = String.valueOf(id)
+                + " " + String.valueOf(tr.x)
+                + " " + String.valueOf(tr.y)
+                + " " + String.valueOf(tr.z);
+
+        SendMessage(
+                DataManager.MessageCode.SpawnFunction.value(),
+                DataManager.MessageCode.CreateSeeker.value(),
+                msg);
+
         enemyNode.attachChild(seeker);
         
     }
 
     private void createWanderer() {
-        Spatial wanderer = getSpatial("Wanderer");
+        Spatial wanderer = new Node("Wanderer");
         wanderer.setLocalTranslation(getSpawnPosition());
-        wanderer.addControl(new WandererControl(settings.getWidth(),
-                settings.getHeight()));
+        wanderer.addControl(new WandererControl(width, height));
         wanderer.setUserData("active", false);
+        wanderer.setUserData("radius", wandererRadius);
+        wanderer.setUserData("objid", ++ObjectsCount);
+        
+        // Send spawnPosition and Objects count
+        int id = wanderer.getUserData("objid");
+        Vector3f tr = wanderer.getLocalTranslation();
+        String msg = String.valueOf(id)
+                + " " + String.valueOf(tr.x)
+                + " " + String.valueOf(tr.y)
+                + " " + String.valueOf(tr.z);
+
+        SendMessage(
+                DataManager.MessageCode.SpawnFunction.value(),
+                DataManager.MessageCode.CreateWanderer.value(),
+                msg);
+        
         enemyNode.attachChild(wanderer);
         
     }

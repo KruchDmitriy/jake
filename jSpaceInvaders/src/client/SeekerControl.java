@@ -65,15 +65,10 @@ public class SeekerControl extends AbstractControl {
             pic.getMaterial().setColor("Color", color);
             
             String msg = "";
-            boolean notfind = true;
-            while (notfind) {
-                msg = dm.FindRecord((Integer)spatial.getUserData("objid"),
-                         DataManager.MessageCode.SeekerControlActive.value());
-                if (!msg.equals(""))
-                    notfind = false;
-            };
-            if (notfind == true)
-                return;
+            msg = dm.FindRecord((Integer)spatial.getUserData("objid"),
+                     DataManager.MessageCode.SeekerControlActive.value());
+            if (msg.equals(""))
+                return;   
             else
                 spatial.setUserData("active", true);
         }

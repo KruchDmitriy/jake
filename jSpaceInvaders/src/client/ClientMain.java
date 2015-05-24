@@ -22,6 +22,7 @@ import com.jme3.texture.Texture2D;
 import com.jme3.ui.Picture;
 import java.io.*;
 import java.net.*;
+import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -38,7 +39,6 @@ public class ClientMain extends SimpleApplication
     public static DataOutputStream out;
     
     public static DataManager dm;
-    public static Object outmutex;
     
     private Spatial player;
 
@@ -70,7 +70,6 @@ public class ClientMain extends SimpleApplication
             out = new DataOutputStream(sout);
         } catch (Exception x) {};
         dm = new DataManager(in,out);
-        outmutex = new Object();
         ClientMain app = new ClientMain();
         app.start();
     }
@@ -270,22 +269,34 @@ public class ClientMain extends SimpleApplication
     }
 
     private void spawnEnemies() {
-        String msg = dm.FindRecord(15, 15);
-        if (!msg.equals("")){
-                //create Seeker
-        };
+        List<String> newSeekers = dm.FindAllRecords(
+                DataManager.MessageCode.SpawnFunction.value(),
+                DataManager.MessageCode.CreateSeeker.value());
+        for (int i = 0; i < newSeekers.size(); i++) {
+            createSeeker(newSeekers.get(i));
+        }
         
-        msg = dm.FindRecord(15, 16);
-        if (!msg.equals("")){
-                //create wanderer
-        };
+        List<String> newWanderers = dm.FindAllRecords(
+                DataManager.MessageCode.SpawnFunction.value(),
+                DataManager.MessageCode.CreateWanderer.value());
+        for (int i = 0; i < newWanderers.size(); i++) {
+            createSeeker(newWanderers.get(i));
+        }
         
     }
 
-    private void createSeeker() {
+    private void createSeeker(String msg) {
+        // Parse message
+        String[] split = msg.split(" ");
+        int id = Integer.parseInt(split[0]);
+        float x = Float.parseFloat(split[1]);
+        float y = Float.parseFloat(split[2]);
+        float z = Float.parseFloat(split[3]);
+        
         Spatial seeker = getSpatial("Seeker");
-        seeker.setLocalTranslation(getSpawnPosition());
-        seeker.addControl(new SeekerControl(player));
+        seeker.setLocalTranslation(new Vector3f(x,y,z));
+        seeker.addControl(new SeekerControl(dm));
+        seeker.setUserData("objid", id);
         seeker.setUserData("active", false);
         enemyNode.attachChild(seeker);
         sound.spawn();
@@ -463,21 +474,5 @@ public class ClientMain extends SimpleApplication
             target.getControl(WandererControl.class).applyGravity(
                     gravity.mult(150000f));
         }
-    }
-    
-    public void SendMessage(long owner, long msgid, String message)
-    {
-        synchronized (outmutex) {
-                try {
-                    out.writeLong(0);
-                    out.writeLong(owner);
-                    out.writeLong(msgid);
-                    out.writeUTF(message);
-
-                } catch (IOException ex) {
-                    
-                }
-                outmutex.notify();
-            }
     }
 }

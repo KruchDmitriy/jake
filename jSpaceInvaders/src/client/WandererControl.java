@@ -19,69 +19,53 @@ import java.util.Random;
  * @author dmitry
  */
 public class WandererControl extends AbstractControl {
-    private int screenWidth, screenHeight;
-
-    private Vector3f velocity;
-    private float directionAngle;
+    private DataManager dm;
     private long spawnTime;
 
-    public WandererControl(int screenWidth, int screenHeight) {
-        this.screenWidth = screenWidth;
-        this.screenHeight = screenHeight;
-
-        velocity = new Vector3f();
-        directionAngle = new Random().nextFloat() * FastMath.PI * 2f;
+    public WandererControl(DataManager dm) {
+        this.dm = dm;
         spawnTime = System.currentTimeMillis();
     }
 
     @Override
     protected void controlUpdate(float tpf) {
         if ((Boolean) spatial.getUserData("active")) {
-            // make the wanderer bounce off the screen borders
-            Vector3f loc = spatial.getLocalTranslation();
-
-            if (FastMath.abs(loc.x - screenWidth / 2f) > screenWidth / 2f) {
-                velocity.x = -velocity.x;
-                directionAngle += FastMath.PI;
-            }
-            if (FastMath.abs(loc.y - screenHeight/2f) > screenHeight / 2f) {
-                velocity.y = -velocity.y;
-                directionAngle += FastMath.PI;
-            }
-            if (directionAngle > FastMath.TWO_PI) {
-                directionAngle -= FastMath.TWO_PI;
-            }
-
-            directionAngle += (new Random().nextFloat() * 20f - 10f) * tpf;
-            Vector3f directionVector = ClientMain.getVectorFromAngle(
-                    directionAngle);
-            directionVector.multLocal(1000f);
-            velocity.addLocal(directionVector);
-
-            // decrease the velocity a bit and move the wanderer
-            velocity.multLocal(0.8f);
-            spatial.move(velocity.mult(tpf * 0.1f));
-
+            String msg = "";
+            
+            msg = dm.FindRecord((Integer)spatial.getUserData("objid"),
+                     DataManager.MessageCode.WandererControlUpdate.value());
+            if (msg.equals(""))
+                return;
+            
+            String[] split = msg.split(" ");
+            float x = Float.parseFloat(split[0]);
+            float y = Float.parseFloat(split[1]);
+            float z = Float.parseFloat(split[2]);
+            spatial.setLocalTranslation(x,y,z);
+            
             // rotate the wanderer
             spatial.rotate(0f, 0f, tpf * 2f);
         } else {
             // handle the "active"-status
             long dif = System.currentTimeMillis() - spawnTime;
-            if (dif >= 1000f) {
-                spatial.setUserData("active", true);
-            }
-            spatial.getLocalTranslation()
-            // setLocalTranslation
-            // Setrotation
+            
             ColorRGBA color = new ColorRGBA(1f, 1f, 1f, dif / 1000f);
             Node spatialNode = (Node)spatial;
             Picture pic = (Picture)spatialNode.getChild("Wanderer");
             pic.getMaterial().setColor("Color", color);
+            
+            String msg = "";
+            msg = dm.FindRecord((Integer)spatial.getUserData("objid"),
+                     DataManager.MessageCode.WandererControlActive.value());
+            if (msg.equals(""))
+                return;   
+            else
+                spatial.setUserData("active", true);
         }
     }
 
     public void applyGravity(Vector3f gravity) {
-        velocity.addLocal(gravity);
+        
     }
 
     @Override

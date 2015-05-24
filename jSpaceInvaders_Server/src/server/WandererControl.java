@@ -19,13 +19,15 @@ import java.util.Random;
  * @author dmitry
  */
 public class WandererControl extends AbstractControl {
+    private DataManager dm;
     private int screenWidth, screenHeight;
 
     private Vector3f velocity;
     private float directionAngle;
     private long spawnTime;
 
-    public WandererControl(int screenWidth, int screenHeight) {
+    public WandererControl(DataManager dm, int screenWidth, int screenHeight) {
+        this.dm = dm;
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
 
@@ -64,17 +66,22 @@ public class WandererControl extends AbstractControl {
 
             // rotate the wanderer
             spatial.rotate(0f, 0f, tpf * 2f);
+            
+            // Send data to client
+            String msg;
+            msg = String.valueOf(spatial.getLocalTranslation().x) + " " +
+                  String.valueOf(spatial.getLocalTranslation().y) + " " +
+                  String.valueOf(spatial.getLocalTranslation().z) + " ";
+            dm.SendMessage((Integer)spatial.getUserData("objid"), 
+                    DataManager.MessageCode.WandererControlUpdate.value(),msg);
         } else {
             // handle the "active"-status
             long dif = System.currentTimeMillis() - spawnTime;
             if (dif >= 1000f) {
                 spatial.setUserData("active", true);
             }
-
-            ColorRGBA color = new ColorRGBA(1f, 1f, 1f, dif / 1000f);
-            Node spatialNode = (Node)spatial;
-            Picture pic = (Picture)spatialNode.getChild("Wanderer");
-            pic.getMaterial().setColor("Color", color);
+            dm.SendMessage((Integer)spatial.getUserData("objid"), 
+                    DataManager.MessageCode.WandererControlActive.value(), "active");
         }
     }
 

@@ -35,11 +35,15 @@ public class DataManager implements Runnable {
         SpawnFunction(00011),
         
         CreateSeeker(00101),
+        CreateWanderer(00102),
         
         PlayerControlUpdate(01000),
         
         SeekerControlUpdate(03000),
-        SeekerControlActive(03001);
+        SeekerControlActive(03001),
+        
+        WandererControlUpdate(04000),
+        WandererControlActive(04001);
         
         private int value;
         
