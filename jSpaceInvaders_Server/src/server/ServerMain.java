@@ -17,6 +17,7 @@ import com.jme3.texture.Texture2D;
 import com.jme3.ui.Picture;
 import java.net.*;
 import java.io.*;
+import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -52,6 +53,7 @@ public class ServerMain extends SimpleApplication {
     private int seekerRadius;
     private int wandererRadius;
     private int blackHoleRadius;
+    private int bulletRadius;
     
     private boolean gameOver = false;
 
@@ -71,7 +73,7 @@ public class ServerMain extends SimpleApplication {
         } catch(Exception x) {}
         dm = new DataManager(in,out);
         outmutex = new Object();
-        ObjectsCount = 100;
+        ObjectsCount = 100000;
         ServerMain app = new ServerMain();
         app.setShowSettings(false);
         app.start();
@@ -83,7 +85,9 @@ public class ServerMain extends SimpleApplication {
         String msg = "";
         boolean notfind = true;
         while (notfind) {
-            msg = dm.FindRecord(1, 1);
+            msg = dm.FindRecord(
+                    DataManager.MessageCode.SimpleInitApp.value(),
+                    DataManager.MessageCode.WidthAndHeight.value());
             if (!msg.equals(""))
                 notfind = false;
         };
@@ -98,15 +102,25 @@ public class ServerMain extends SimpleApplication {
         
         notfind = true;
         while (notfind) {
-            msg = dm.FindRecord(1, 2);
+            msg = dm.FindRecord(
+                    DataManager.MessageCode.SimpleInitApp.value(),
+                    DataManager.MessageCode.PlayerRadius.value());
             if (!msg.equals(""))
                 notfind = false;
         };
+        player.setUserData("objid", ++ObjectsCount);
         player.setUserData("radius", Integer.parseInt(msg) );
-        player.addControl(new PlayerControl(width, height));
+        player.addControl(new PlayerControl(dm,width, height));
+        dm.SendMessage(
+                DataManager.MessageCode.SimpleInitApp.value(),
+                DataManager.MessageCode.PlayerID.value(),
+                String.valueOf(player.getUserData("objid")));
+        
         
         seekerRadius = 10;
         wandererRadius = 10;
+        blackHoleRadius = 10;
+        bulletRadius = 10;
        
         player.setUserData("alive", true);
         player.move(width/2, height/2, 0f);
@@ -126,6 +140,7 @@ public class ServerMain extends SimpleApplication {
         if ((Boolean) player.getUserData("alive")) {
             spawnEnemies();
             spawnBlackHoles();
+            spawnBullets();
             handleCollisions();
             handleGravity(tpf);
         } else if ((System.currentTimeMillis() -
@@ -199,54 +214,65 @@ public class ServerMain extends SimpleApplication {
         return node;
     }
 
-    public void onAction(String name, boolean isPressed, float tpf) {
-        if ((Boolean) player.getUserData("alive")) {
-            if (name.equals("up")) {
-                player.getControl(PlayerControl.class).up = isPressed;
-            } else if (name.equals("down")) {
-                player.getControl(PlayerControl.class).down = isPressed;
-            } else if (name.equals("left")) {
-                player.getControl(PlayerControl.class).left = isPressed;
-            } else if (name.equals("right")) {
-                player.getControl(PlayerControl.class).right = isPressed;
-            }
+    
+    private void spawnBullets() 
+    {
+        
+        List<String> msgs = dm.FindAllRecords(DataManager.MessageCode.OnAnalog.value(),
+                            DataManager.MessageCode.CreateBullet.value());
+        
+        for (int i = 0; i < msgs.size(); i++)
+        {
+            String[] split = msgs.get(i).split(" ");
+            Vector3f aim = new Vector3f(Float.valueOf(split[0]),
+                    Float.valueOf(split[1]),
+                    Float.valueOf(split[2]));
+            Vector3f offset = new Vector3f(aim.y/3, -aim.x/3, 0f);
+
+            Spatial bullet = new  Node("Bullet");
+            bullet.setUserData("objid", ++ObjectsCount);
+            bullet.setUserData("radius", bulletRadius);
+            Vector3f finalOffset = aim.add(offset).mult(30);
+            Vector3f trans =
+                    player.getLocalTranslation().add(finalOffset);
+            bullet.setLocalTranslation(trans);
+            bullet.addControl(
+                    new BulletControl(dm, aim,
+                                      settings.getWidth(),
+                                      settings.getHeight()));
+            bulletNode.attachChild(bullet);
+            
+            String msg = String.valueOf(bullet.getUserData("objid")) + " " +
+                         String.valueOf(trans.x) + " " +
+                         String.valueOf(trans.y) + " " +
+                         String.valueOf(trans.z);
+                    
+            dm.SendMessage(
+                            DataManager.MessageCode.OnAnalog.value(),
+                            DataManager.MessageCode.CreateBullet.value(), 
+                            msg);
+
+            Spatial bullet2 = getSpatial("Bullet");
+            finalOffset = aim.add(offset.negate()).mult(30);
+            trans = player.getLocalTranslation().add(finalOffset);
+            bullet2.setLocalTranslation(trans);
+            bullet2.addControl(
+                    new BulletControl( dm,
+                    aim, settings.getWidth(), settings.getHeight()));
+            bulletNode.attachChild(bullet2);
+            
+            msg = String.valueOf(bullet2.getUserData("objid")) + " " +
+                         String.valueOf(trans.x) + " " +
+                         String.valueOf(trans.y) + " " +
+                         String.valueOf(trans.z);
+                    
+            dm.SendMessage(
+                            DataManager.MessageCode.OnAnalog.value(),
+                            DataManager.MessageCode.CreateBullet.value(), 
+                            msg);
+
         }
     }
-
-    public void onAnalog(String name, float value, float tpf) {
-        if ((Boolean) player.getUserData("alive")) {
-            if (name.equals("mousePick")) {
-                if (System.currentTimeMillis() - bulletCooldown > 83) {
-                    bulletCooldown = System.currentTimeMillis();
-
-                    Vector3f aim = getAimDirection();
-                    Vector3f offset = new Vector3f(aim.y/3, -aim.x/3, 0f);
-
-                    Spatial bullet = getSpatial("Bullet");
-                    Vector3f finalOffset = aim.add(offset).mult(30);
-                    Vector3f trans =
-                            player.getLocalTranslation().add(finalOffset);
-                    bullet.setLocalTranslation(trans);
-                    bullet.addControl(
-                            new BulletControl(aim,
-                                              settings.getWidth(),
-                                              settings.getHeight()));
-                    bulletNode.attachChild(bullet);
-
-                    Spatial bullet2 = getSpatial("Bullet");
-                    finalOffset = aim.add(offset.negate()).mult(30);
-                    trans = player.getLocalTranslation().add(finalOffset);
-                    bullet2.setLocalTranslation(trans);
-                    bullet2.addControl(
-                            new BulletControl(
-                            aim, settings.getWidth(), settings.getHeight()));
-                    bulletNode.attachChild(bullet2);
-
-                }
-            }
-        }
-    }
-
     private void spawnEnemies() {
         if (System.currentTimeMillis() - enemySpawnCooldown >= 17) {
             enemySpawnCooldown = System.currentTimeMillis();

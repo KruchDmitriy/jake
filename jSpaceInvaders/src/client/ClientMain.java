@@ -77,7 +77,10 @@ public class ClientMain extends SimpleApplication
     @Override
     public void simpleInitApp() {
         
-        dm.SendMessage(1,1,String.valueOf(settings.getWidth()) + " " + String.valueOf(settings.getHeight()));
+        dm.SendMessage(
+                DataManager.MessageCode.SimpleInitApp.value(),
+                DataManager.MessageCode.WidthAndHeight.value(),
+                String.valueOf(settings.getWidth()) + " " + String.valueOf(settings.getHeight()));
         // setup camera for 2D games
         cam.setParallelProjection(true);
         cam.setLocation(new Vector3f(0.0f, 0.0f, 0.5f));
@@ -111,6 +114,22 @@ public class ClientMain extends SimpleApplication
         player.move(settings.getWidth()/2, settings.getHeight()/2, 0f);
         player.addControl(new PlayerControl(dm));
         
+        dm.SendMessage(
+                DataManager.MessageCode.SimpleInitApp.value(),
+                DataManager.MessageCode.PlayerRadius.value(),
+                String.valueOf(player.getUserData("radius")));
+        
+        String msg = "";
+        boolean notfind = true;
+        while (notfind) {
+             msg = dm.FindRecord(
+                     DataManager.MessageCode.SimpleInitApp.value(),
+                     DataManager.MessageCode.PlayerID.value());
+             if (!msg.equals(""))
+                 notfind = false;
+        };
+        
+        player.setUserData("objid", Integer.parseInt(msg));
         
 
         bulletNode = new Node("bullets");
@@ -234,23 +253,41 @@ public class ClientMain extends SimpleApplication
                             DataManager.MessageCode.OnAnalog.value(),
                             DataManager.MessageCode.CreateBullet.value(), 
                             msg);
-                    Vector3f offset = new Vector3f(aim.y/3, -aim.x/3, 0f);
-
+                    
+                    msg = "";
+                    while (msg.equals("")){
+                        msg = dm.FindRecord(DataManager.MessageCode.OnAnalog.value(),
+                            DataManager.MessageCode.CreateBullet.value());
+                    }
+                    String[] split = msg.split(" ");
+                    int id = Integer.valueOf(split[0]);
+                    Vector3f pos = new Vector3f(Float.valueOf(split[1]),
+                    Float.valueOf(split[2]),
+                    Float.valueOf(split[3]));
+                    
                     Spatial bullet = getSpatial("Bullet");
-                    Vector3f finalOffset = aim.add(offset).mult(30);
-                    Vector3f trans =
-                            player.getLocalTranslation().add(finalOffset);
-                    bullet.setLocalTranslation(trans);
+                    bullet.setUserData("objid", id);
+                    bullet.setLocalTranslation(pos);
                     bullet.addControl(
                             new BulletControl(dm, aim,
                                               settings.getWidth(),
                                               settings.getHeight()));
                     bulletNode.attachChild(bullet);
-
+                    
+                    msg = "";
+                    while (msg.equals("")){
+                        msg = dm.FindRecord(DataManager.MessageCode.OnAnalog.value(),
+                            DataManager.MessageCode.CreateBullet.value());
+                    }
+                    split = msg.split(" ");
+                    id = Integer.valueOf(split[0]);
+                    pos = new Vector3f(Float.valueOf(split[1]),
+                    Float.valueOf(split[2]),
+                    Float.valueOf(split[3]));
+                    
                     Spatial bullet2 = getSpatial("Bullet");
-                    finalOffset = aim.add(offset.negate()).mult(30);
-                    trans = player.getLocalTranslation().add(finalOffset);
-                    bullet2.setLocalTranslation(trans);
+                    bullet2.setUserData("objid", id);
+                    bullet2.setLocalTranslation(pos);
                     bullet2.addControl(
                             new BulletControl( dm,
                             aim, settings.getWidth(), settings.getHeight()));
