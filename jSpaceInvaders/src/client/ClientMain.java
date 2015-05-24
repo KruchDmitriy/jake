@@ -37,7 +37,7 @@ public class ClientMain extends SimpleApplication
     public static DataInputStream in;
     public static DataOutputStream out;
     
-    public static DataStorage ds;
+    public static DataManager dm;
     public static Object outmutex;
     
     private Spatial player;
@@ -69,7 +69,7 @@ public class ClientMain extends SimpleApplication
             in = new DataInputStream(sin);
             out = new DataOutputStream(sout);
         } catch (Exception x) {};
-        ds = new DataStorage(in);
+        dm = new DataManager(in,out);
         outmutex = new Object();
         ClientMain app = new ClientMain();
         app.start();
@@ -270,12 +270,12 @@ public class ClientMain extends SimpleApplication
     }
 
     private void spawnEnemies() {
-        String msg = ds.FindRecord(15, 15);
+        String msg = dm.FindRecord(15, 15);
         if (!msg.equals("")){
                 //create Seeker
         };
         
-        msg = ds.FindRecord(15, 16);
+        msg = dm.FindRecord(15, 16);
         if (!msg.equals("")){
                 //create wanderer
         };

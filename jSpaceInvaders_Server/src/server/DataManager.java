@@ -5,6 +5,7 @@
 package server;
 
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -74,16 +75,20 @@ public class DataManager implements Runnable {
     }
     
     private DataInputStream in;
+    private DataOutputStream out;
     private List<Record> data;
     public long lostData;
-    private Object mutex;
+    private Object inmutex;
+    private Object outmutex;
     
     @SuppressWarnings("CallToThreadStartDuringObjectConstruction")
-    public DataManager(DataInputStream _in) {
+    public DataManager(DataInputStream _in, DataOutputStream _out) {
         in = _in;
+        out = _out;
         data = new ArrayList<Record>();
         lostData = 0;
-        mutex = new Object();
+        inmutex = new Object();
+        outmutex = new Object();
         new Thread(this).start();
     };
     
@@ -97,10 +102,10 @@ public class DataManager implements Runnable {
                         long o = in.readLong();
                         long m = in.readLong();
                         String mes = in.readUTF();
-                        synchronized (mutex) {
+                        synchronized (inmutex) {
                             Record temp = new Record (o,m,mes);
                             data.add(temp);
-                            mutex.notify();
+                            inmutex.notify();
                         }
                     }
                 } catch (IOException ex) {
@@ -109,7 +114,7 @@ public class DataManager implements Runnable {
         }
     };
     public String FindRecord(long o, long m) {
-        synchronized (mutex) {
+        synchronized (inmutex) {
             for (int i = 0; i < data.size(); i++)
             {
                 Record temp = data.get(i);
@@ -117,18 +122,18 @@ public class DataManager implements Runnable {
                 {
                     String msg = temp.message;
                     data.remove(i);
-                    mutex.notify();
+                    inmutex.notify();
                     return msg;
                 }
             }
-            mutex.notify();
+            inmutex.notify();
             return "";
         }
     };
     
     public List<String> FindAllRecords(long o, long m) {
         List<String> result = new ArrayList<String>();
-        synchronized (mutex) {
+        synchronized (inmutex) {
             for (int i = 0; i < data.size(); i++)
             {
                 Record temp = data.get(i);
@@ -139,7 +144,7 @@ public class DataManager implements Runnable {
                     result.add(msg);
                 }
             }
-            mutex.notify();
+            inmutex.notify();
             return result;
         }
     }

@@ -68,7 +68,7 @@ public class ServerMain extends SimpleApplication {
             in = new DataInputStream(sin);
             out = new DataOutputStream(sout);
         } catch(Exception x) {}
-        ds = new DataManager(in);
+        ds = new DataManager(in,out);
         outmutex = new Object();
         ObjectsCount = 100;
         ServerMain app = new ServerMain();
