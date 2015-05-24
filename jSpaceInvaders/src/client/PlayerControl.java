@@ -16,17 +16,12 @@ import com.jme3.scene.control.AbstractControl;
  */
 public class PlayerControl extends AbstractControl {
     private DataManager dm;
-    private int screenWidth, screenHeight;
-
     public boolean up, down, left, right;
     // speed of the player
-    private float speed = 800f;
     // lastRotation of the player
     private float lastRotation;
 
-    public PlayerControl(int width, int height, DataManager dm) {
-        this.screenWidth  = width;
-        this.screenHeight = height;
+    public PlayerControl(DataManager dm) {
         this.dm = dm;
     }
 
@@ -78,7 +73,7 @@ public class PlayerControl extends AbstractControl {
     }
 
     public void applyGravity(Vector3f gravity) {
-        spatial.move(gravity);
+        
     }
 
     @Override

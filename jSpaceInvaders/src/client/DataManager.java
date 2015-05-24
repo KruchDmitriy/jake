@@ -34,10 +34,12 @@ public class DataManager implements Runnable {
         
         SpawnFunction(00011),
         HandleCollision(00012),
+        OnAnalog(00013),
         
         CreateSeeker(00101),
         CreateWanderer(00102),
         CreateBlackHole(00103),
+        CreateBullet(00103),
         
         PlayerControlUpdate(01000),
         PlayerDie(01001),

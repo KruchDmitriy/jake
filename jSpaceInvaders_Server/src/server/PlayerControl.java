@@ -16,6 +16,7 @@ import com.jme3.scene.control.AbstractControl;
  * @author dmitry
  */
 public class PlayerControl extends AbstractControl {
+    private DataManager dm;
     private int screenWidth, screenHeight;
 
     public boolean up, down, left, right;
@@ -24,16 +25,21 @@ public class PlayerControl extends AbstractControl {
     // lastRotation of the player
     private float lastRotation;
 
-    public PlayerControl(int width, int height) {
+    public PlayerControl(DataManager dm, int width, int height) {
+        this.dm = dm;
         this.screenWidth  = width;
         this.screenHeight = height;
     }
 
     @Override
     protected void controlUpdate(float tpf) {
-        // move the player in a certain direction
-        // if he is not out of the screen
-        if (up) {
+        String msg = "";
+        msg = dm.FindRecord((Integer)spatial.getUserData("objid"),
+                DataManager.MessageCode.PlayerControlUpdate.value());
+        if (msg.equals(""))
+            return;
+                
+        if (msg.equals("up")) {
             if (spatial.getLocalTranslation().y <
                     screenHeight - (Float)spatial.getUserData("radius")) {
                 spatial.move(0, tpf * speed, 0);
@@ -41,7 +47,7 @@ public class PlayerControl extends AbstractControl {
             spatial.rotate(0, 0, -lastRotation + FastMath.PI / 2);
             lastRotation = FastMath.PI / 2;
         }
-        else if (down) {
+        else if (msg.equals("down")) {
             if (spatial.getLocalTranslation().y >
                     (Float)spatial.getUserData("radius")) {
                 spatial.move(0, tpf * (-speed), 0);
@@ -49,7 +55,7 @@ public class PlayerControl extends AbstractControl {
             spatial.rotate(0, 0, -lastRotation + FastMath.PI * 1.5f);
             lastRotation = FastMath.PI * 1.5f;
         }
-        else if (left) {
+        else if (msg.equals("left")) {
             if (spatial.getLocalTranslation().x >
                     (Float)spatial.getUserData("radius")) {
                 spatial.move(tpf * (-speed), 0, 0);
@@ -57,7 +63,7 @@ public class PlayerControl extends AbstractControl {
             spatial.rotate(0, 0, -lastRotation + FastMath.PI);
             lastRotation = FastMath.PI;
         }
-        else if (right) {
+        else if (msg.equals("tight")) {
             if (spatial.getLocalTranslation().x <
                     screenWidth - (Float)spatial.getUserData("radius")) {
                 spatial.move(tpf * speed, 0, 0);
@@ -65,6 +71,14 @@ public class PlayerControl extends AbstractControl {
             spatial.rotate(0, 0, -lastRotation);
             lastRotation = 0;
         }
+        
+        msg = String.valueOf(spatial.getLocalTranslation().x) + " " +
+              String.valueOf(spatial.getLocalTranslation().y) + " " +
+              String.valueOf(spatial.getLocalTranslation().z);
+        dm.SendMessage(
+                (Integer)spatial.getUserData("objid"),
+                DataManager.MessageCode.PlayerControlUpdate.value(),
+                msg);
     }
 
     public void applyGravity(Vector3f gravity) {

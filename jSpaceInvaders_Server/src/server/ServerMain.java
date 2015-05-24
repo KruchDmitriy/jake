@@ -463,7 +463,7 @@ public class ServerMain extends SimpleApplication {
                 + " " + String.valueOf(tr.y)
                 + " " + String.valueOf(tr.z);
 
-        SendMessage(
+        dm.SendMessage(
                 DataManager.MessageCode.SpawnFunction.value(),
                 DataManager.MessageCode.CreateBlackHole.value(),
                 msg);

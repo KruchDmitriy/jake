@@ -77,7 +77,7 @@ public class ClientMain extends SimpleApplication
     @Override
     public void simpleInitApp() {
         
-        SendMessage(1,1,String.valueOf(settings.getWidth()) + " " + String.valueOf(settings.getHeight()));
+        dm.SendMessage(1,1,String.valueOf(settings.getWidth()) + " " + String.valueOf(settings.getHeight()));
         // setup camera for 2D games
         cam.setParallelProjection(true);
         cam.setLocation(new Vector3f(0.0f, 0.0f, 0.5f));
@@ -109,14 +109,9 @@ public class ClientMain extends SimpleApplication
         player = getSpatial("Player");
         player.setUserData("alive", true);
         player.move(settings.getWidth()/2, settings.getHeight()/2, 0f);
-        player.addControl(new PlayerControl(settings.getWidth(), settings.getHeight()));
+        player.addControl(new PlayerControl(dm));
         
-        try {
-            out.writeInt(100001);
-            out.writeInt((Integer)player.getUserData("radius"));
-        } catch (IOException ex) {
-            Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        
 
         bulletNode = new Node("bullets");
         enemyNode = new Node("enemies");
@@ -230,6 +225,15 @@ public class ClientMain extends SimpleApplication
                     bulletCooldown = System.currentTimeMillis();
 
                     Vector3f aim = getAimDirection();
+                    // send aim
+                    String msg = String.valueOf(aim.x) + " " +
+                                 String.valueOf(aim.y) + " " +
+                                 String.valueOf(aim.z);
+                    
+                    dm.SendMessage(
+                            DataManager.MessageCode.OnAnalog.value(),
+                            DataManager.MessageCode.CreateBullet.value(), 
+                            msg);
                     Vector3f offset = new Vector3f(aim.y/3, -aim.x/3, 0f);
 
                     Spatial bullet = getSpatial("Bullet");
@@ -238,7 +242,7 @@ public class ClientMain extends SimpleApplication
                             player.getLocalTranslation().add(finalOffset);
                     bullet.setLocalTranslation(trans);
                     bullet.addControl(
-                            new BulletControl(aim,
+                            new BulletControl(dm, aim,
                                               settings.getWidth(),
                                               settings.getHeight()));
                     bulletNode.attachChild(bullet);
@@ -248,7 +252,7 @@ public class ClientMain extends SimpleApplication
                     trans = player.getLocalTranslation().add(finalOffset);
                     bullet2.setLocalTranslation(trans);
                     bullet2.addControl(
-                            new BulletControl(
+                            new BulletControl( dm,
                             aim, settings.getWidth(), settings.getHeight()));
                     bulletNode.attachChild(bullet2);
 
