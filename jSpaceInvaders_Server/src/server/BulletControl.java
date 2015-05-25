@@ -33,7 +33,7 @@ public class BulletControl extends AbstractControl {
     protected void controlUpdate(float tpf) {
         // movement
         
-        int id = spatial.getUserData("objid");
+        long id = spatial.getUserData("objid");
         
         spatial.move(direction.mult(speed * tpf));
 

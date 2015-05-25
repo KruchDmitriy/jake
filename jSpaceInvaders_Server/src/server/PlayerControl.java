@@ -34,6 +34,8 @@ public class PlayerControl extends AbstractControl {
     @Override
     protected void controlUpdate(float tpf) {
         String msg = "";
+        long id = spatial.getUserData("objid");
+        
         msg = dm.FindRecord((Long)spatial.getUserData("objid"),
                 DataManager.MessageCode.PlayerControlUpdate.value());
         if (msg.equals(""))
@@ -76,7 +78,7 @@ public class PlayerControl extends AbstractControl {
               String.valueOf(spatial.getLocalTranslation().y) + " " +
               String.valueOf(spatial.getLocalTranslation().z);
         dm.SendMessage(
-                (Long)spatial.getUserData("objid"),
+                Long.valueOf((Integer)spatial.getUserData("objid")),
                 DataManager.MessageCode.PlayerControlUpdate.value(),
                 msg);
     }

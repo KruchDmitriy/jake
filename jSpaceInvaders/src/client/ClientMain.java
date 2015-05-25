@@ -158,7 +158,7 @@ public class ClientMain extends SimpleApplication
                 (JmeCursor) assetManager.loadAsset("Textures/Pointer.ico"));
 
         sound = new Sound(assetManager);
-        sound.startMusic();
+        //sound.startMusic();
     }
 
     @Override

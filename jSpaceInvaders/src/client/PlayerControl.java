@@ -30,28 +30,28 @@ public class PlayerControl extends AbstractControl {
         // move the player in a certain direction
         // if he is not out of the screen
         if (up) {
-            dm.SendMessage((Long)spatial.getUserData("objid"),
+            dm.SendMessage(Long.valueOf((Integer)spatial.getUserData("objid")),
                     DataManager.MessageCode.PlayerControlUpdate.value(),
                     "up");
             spatial.rotate(0, 0, -lastRotation + FastMath.PI / 2);
             lastRotation = FastMath.PI / 2;
         }
         else if (down) {
-            dm.SendMessage((Long)spatial.getUserData("objid"),
+            dm.SendMessage(Long.valueOf((Integer)spatial.getUserData("objid")),
                     DataManager.MessageCode.PlayerControlUpdate.value(),
                     "down");
             spatial.rotate(0, 0, -lastRotation + FastMath.PI * 1.5f);
             lastRotation = FastMath.PI * 1.5f;
         }
         else if (left) {
-            dm.SendMessage((Long)spatial.getUserData("objid"),
+            dm.SendMessage(Long.valueOf((Integer)spatial.getUserData("objid")),
                     DataManager.MessageCode.PlayerControlUpdate.value(),
                     "left");
             spatial.rotate(0, 0, -lastRotation + FastMath.PI);
             lastRotation = FastMath.PI;
         }
         else if (right) {
-            dm.SendMessage((Long)spatial.getUserData("objid"),
+            dm.SendMessage(Long.valueOf((Integer)spatial.getUserData("objid")),
                     DataManager.MessageCode.PlayerControlUpdate.value(),
                     "right");
             spatial.rotate(0, 0, -lastRotation);
@@ -60,7 +60,7 @@ public class PlayerControl extends AbstractControl {
         
         String msg = "";
         
-        msg = dm.FindRecord((Long)spatial.getUserData("objid"),
+        msg = dm.FindRecord(Long.valueOf((Integer)spatial.getUserData("objid")),
                  DataManager.MessageCode.PlayerControlUpdate.value());
         if (msg.equals(""))
             return;

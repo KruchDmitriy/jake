@@ -33,7 +33,7 @@ public class SeekerControl extends AbstractControl {
             // translate the seeker
             String msg = "";
             
-            msg = dm.FindRecord((Long)spatial.getUserData("objid"),
+            msg = dm.FindRecord(Long.valueOf((Integer)spatial.getUserData("objid")),
                      DataManager.MessageCode.SeekerControlUpdate.value());
             if (msg.equals(""))
                 return;
@@ -65,7 +65,7 @@ public class SeekerControl extends AbstractControl {
             pic.getMaterial().setColor("Color", color);
             
             String msg = "";
-            msg = dm.FindRecord((Long)spatial.getUserData("objid"),
+            msg = dm.FindRecord(Long.valueOf((Integer)spatial.getUserData("objid")),
                      DataManager.MessageCode.SeekerControlActive.value());
             if (msg.equals(""))
                 return;   
