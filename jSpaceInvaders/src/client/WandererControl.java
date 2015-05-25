@@ -32,7 +32,7 @@ public class WandererControl extends AbstractControl {
         if ((Boolean) spatial.getUserData("active")) {
             String msg = "";
             
-            msg = dm.FindRecord((Integer)spatial.getUserData("objid"),
+            msg = dm.FindRecord((Long)spatial.getUserData("objid"),
                      DataManager.MessageCode.WandererControlUpdate.value());
             if (msg.equals(""))
                 return;
@@ -55,7 +55,7 @@ public class WandererControl extends AbstractControl {
             pic.getMaterial().setColor("Color", color);
             
             String msg = "";
-            msg = dm.FindRecord((Integer)spatial.getUserData("objid"),
+            msg = dm.FindRecord((Long)spatial.getUserData("objid"),
                      DataManager.MessageCode.WandererControlActive.value());
             if (msg.equals(""))
                 return;   

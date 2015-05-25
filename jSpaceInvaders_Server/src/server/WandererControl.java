@@ -72,14 +72,14 @@ public class WandererControl extends AbstractControl {
             msg = String.valueOf(spatial.getLocalTranslation().x) + " " +
                   String.valueOf(spatial.getLocalTranslation().y) + " " +
                   String.valueOf(spatial.getLocalTranslation().z) + " ";
-            dm.SendMessage((Integer)spatial.getUserData("objid"), 
+            dm.SendMessage((Long)spatial.getUserData("objid"), 
                     DataManager.MessageCode.WandererControlUpdate.value(),msg);
         } else {
             // handle the "active"-status
             long dif = System.currentTimeMillis() - spawnTime;
             if (dif >= 1000f) {
                 spatial.setUserData("active", true);
-                dm.SendMessage((Integer)spatial.getUserData("objid"), 
+                dm.SendMessage((Long)spatial.getUserData("objid"), 
                     DataManager.MessageCode.WandererControlActive.value(), "active");
             }
             

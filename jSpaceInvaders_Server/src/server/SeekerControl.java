@@ -59,14 +59,14 @@ public class SeekerControl extends AbstractControl {
                   String.valueOf(vel.x) + " " +
                   String.valueOf(vel.y) + " " +
                   String.valueOf(vel.z);
-            dm.SendMessage((Integer)spatial.getUserData("objid"), 
+            dm.SendMessage((Long)spatial.getUserData("objid"), 
                     DataManager.MessageCode.SeekerControlUpdate.value(),msg);
         } else {
             // handle the "active" status
             long dif = System.currentTimeMillis() - spawnTime;
             if (dif >= 1000f) {
                 spatial.setUserData("active", true);
-                dm.SendMessage((Integer)spatial.getUserData("objid"), 
+                dm.SendMessage((Long)spatial.getUserData("objid"), 
                     DataManager.MessageCode.SeekerControlActive.value(), "active");
             }
             

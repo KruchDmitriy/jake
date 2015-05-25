@@ -40,7 +40,7 @@ public class BlackHoleControl extends AbstractControl {
             pic.getMaterial().setColor("Color", color);
             
             String msg = "";
-            msg = dm.FindRecord((Integer)spatial.getUserData("objid"),
+            msg = dm.FindRecord((Long)spatial.getUserData("objid"),
                      DataManager.MessageCode.WandererControlActive.value());
             if (msg.equals(""))
                 return;   
