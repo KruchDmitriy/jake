@@ -1,6 +1,8 @@
 package server;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.AnalogListener;
 import com.jme3.system.AppSettings;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
@@ -26,7 +28,10 @@ import java.util.logging.Logger;
  * test
  * @author normenhansen
  */
-public class ServerMain extends SimpleApplication {
+public class ServerMain extends SimpleApplication 
+    
+    implements ActionListener,
+               AnalogListener {
     
     public static ServerSocket ss;
     public static Socket socket;
@@ -76,6 +81,7 @@ public class ServerMain extends SimpleApplication {
         ObjectsCount = 100000;
         ServerMain app = new ServerMain();
         app.setShowSettings(false);
+        app.setPauseOnLostFocus(false);
         app.start();
     }
 
@@ -135,7 +141,9 @@ public class ServerMain extends SimpleApplication {
         guiNode.attachChild(bulletNode);
         guiNode.attachChild(player);
     }
-
+    
+    public void onAction(String name, boolean isPressed, float tpf) {}
+    public void onAnalog(String name, float value, float tpf) {}
     @Override
     public void simpleUpdate(float tpf) {
         if ((Boolean) player.getUserData("alive")) {

@@ -71,6 +71,7 @@ public class ClientMain extends SimpleApplication
         } catch (Exception x) {};
         dm = new DataManager(in,out);
         ClientMain app = new ClientMain();
+        app.setPauseOnLostFocus(false);
         app.start();
     }
 
