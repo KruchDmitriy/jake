@@ -63,13 +63,13 @@ public class DataManager implements Runnable {
         BlackHoleControlActive(05000),
         BlackHoleDie(05001);
         
-        private int value;
+        private long value;
         
-        private MessageCode(int value) {
+        private MessageCode(long value) {
             this.value = value;
         }
         
-        static MessageCode fromValue(int value) {
+        static MessageCode fromValue(long value) {
             for (MessageCode my: MessageCode.values()) {
                 if (my.value == value) {
                     return my;
@@ -78,7 +78,7 @@ public class DataManager implements Runnable {
             return null;
         }
         
-        int value() {
+        long value() {
             return value;
         }
     }

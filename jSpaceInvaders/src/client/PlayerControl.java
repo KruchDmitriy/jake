@@ -59,7 +59,7 @@ public class PlayerControl extends AbstractControl {
         }
         
         String msg = "";
-            
+        
         msg = dm.FindRecord((Long)spatial.getUserData("objid"),
                  DataManager.MessageCode.PlayerControlUpdate.value());
         if (msg.equals(""))
