@@ -206,10 +206,10 @@ public class ServerMain extends SimpleApplication {
                                       settings.getHeight()));
             bulletNode.attachChild(bullet);
             
-            String msg = String.valueOf(bullet.getUserData("objid")) + " " +
+            String msg = String.valueOf(bullet.getUserData("objid") + " " +
                          String.valueOf(trans.x) + " " +
                          String.valueOf(trans.y) + " " +
-                         String.valueOf(trans.z);
+                         String.valueOf(trans.z));
                     
             dm.SendMessage(
                             DataManager.MessageCode.OnAnalog.value(),
@@ -225,10 +225,10 @@ public class ServerMain extends SimpleApplication {
                     aim, settings.getWidth(), settings.getHeight()));
             bulletNode.attachChild(bullet2);
             
-            msg = String.valueOf(bullet2.getUserData("objid")) + " " +
+            msg = String.valueOf(bullet2.getUserData("objid") + " " +
                          String.valueOf(trans.x) + " " +
                          String.valueOf(trans.y) + " " +
-                         String.valueOf(trans.z);
+                         String.valueOf(trans.z));
                     
             dm.SendMessage(
                             DataManager.MessageCode.OnAnalog.value(),

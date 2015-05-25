@@ -29,7 +29,7 @@ public class BulletControl extends AbstractControl {
     protected void controlUpdate(float tpf) {
         // movement
         String msg = "";
-        msg = dm.FindRecord(Long.valueOf((Integer)spatial.getUserData("objid")),
+        msg = dm.FindRecord((Long)spatial.getUserData("objid"),
                  DataManager.MessageCode.BulletControlUpdate.value());
         if (msg.equals(""))
             return;   
@@ -43,7 +43,7 @@ public class BulletControl extends AbstractControl {
         float r = Float.parseFloat(split[3]);
         spatial.rotate(0, 0, r);
         
-        msg = dm.FindRecord(Long.valueOf((Integer)spatial.getUserData("objid")),
+        msg = dm.FindRecord((Long)spatial.getUserData("objid"),
                  DataManager.MessageCode.BulletDie.value());
         if (msg.equals(""))
             return;

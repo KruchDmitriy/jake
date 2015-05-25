@@ -35,7 +35,7 @@ public class BlackHoleControl extends AbstractControl {
             long dif = System.currentTimeMillis() - spawnTime;
             if (dif >= 1000f) {
                 spatial.setUserData("active", true);
-                dm.SendMessage(Long.valueOf((Integer)spatial.getUserData("objid")), 
+                dm.SendMessage((Long)spatial.getUserData("objid"), 
                     DataManager.MessageCode.BlackHoleControlActive.value(), "active");
             }
 

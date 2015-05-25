@@ -21,7 +21,7 @@ public class PlayerControl extends AbstractControl {
 
     public boolean up, down, left, right;
     // speed of the player
-    private float speed = 800f;
+    private float speed = 8f;
     // lastRotation of the player
     private float lastRotation;
 
@@ -65,7 +65,7 @@ public class PlayerControl extends AbstractControl {
             spatial.rotate(0, 0, -lastRotation + FastMath.PI);
             lastRotation = FastMath.PI;
         }
-        else if (msg.equals("tight")) {
+        else if (msg.equals("right")) {
             if (spatial.getLocalTranslation().x <
                     screenWidth - (Float)spatial.getUserData("radius")) {
                 spatial.move(tpf * speed, 0, 0);
@@ -78,7 +78,7 @@ public class PlayerControl extends AbstractControl {
               String.valueOf(spatial.getLocalTranslation().y) + " " +
               String.valueOf(spatial.getLocalTranslation().z);
         dm.SendMessage(
-                Long.valueOf((Integer)spatial.getUserData("objid")),
+                (Long)spatial.getUserData("objid"),
                 DataManager.MessageCode.PlayerControlUpdate.value(),
                 msg);
     }

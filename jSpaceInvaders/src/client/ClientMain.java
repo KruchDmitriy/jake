@@ -129,7 +129,7 @@ public class ClientMain extends SimpleApplication
                  notfind = false;
         };
         
-        player.setUserData("objid", Integer.parseInt(msg));
+        player.setUserData("objid", Long.parseLong(msg));
         
 
         bulletNode = new Node("bullets");
@@ -260,7 +260,7 @@ public class ClientMain extends SimpleApplication
                             DataManager.MessageCode.CreateBullet.value());
                     }
                     String[] split = msg.split(" ");
-                    int id = Integer.valueOf(split[0]);
+                    long id = Long.parseLong(split[0]);
                     Vector3f pos = new Vector3f(Float.valueOf(split[1]),
                     Float.valueOf(split[2]),
                     Float.valueOf(split[3]));
@@ -280,7 +280,7 @@ public class ClientMain extends SimpleApplication
                             DataManager.MessageCode.CreateBullet.value());
                     }
                     split = msg.split(" ");
-                    id = Integer.valueOf(split[0]);
+                    id = Long.parseLong(split[0]);
                     pos = new Vector3f(Float.valueOf(split[1]),
                     Float.valueOf(split[2]),
                     Float.valueOf(split[3]));
@@ -328,7 +328,7 @@ public class ClientMain extends SimpleApplication
     private void createSeeker(String msg) {
         // Parse message
         String[] split = msg.split(" ");
-        int id = Integer.parseInt(split[0]);
+        long id = Long.parseLong(split[0]);
         float x = Float.parseFloat(split[1]);
         float y = Float.parseFloat(split[2]);
         float z = Float.parseFloat(split[3]);
@@ -344,7 +344,7 @@ public class ClientMain extends SimpleApplication
 
     private void createWanderer(String msg) {
         String[] split = msg.split(" ");
-        int id = Integer.parseInt(split[0]);
+        long id = Long.parseLong(split[0]);
         float x = Float.parseFloat(split[1]);
         float y = Float.parseFloat(split[2]);
         float z = Float.parseFloat(split[3]);
