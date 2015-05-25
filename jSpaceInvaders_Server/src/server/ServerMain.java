@@ -50,10 +50,10 @@ public class ServerMain extends SimpleApplication {
     private float enemySpawnChance = 80;
     private long spawnCooldownBlackHole;
     
-    private int seekerRadius;
-    private int wandererRadius;
-    private int blackHoleRadius;
-    private int bulletRadius;
+    private float seekerRadius;
+    private float wandererRadius;
+    private float blackHoleRadius;
+    private float bulletRadius;
     
     private boolean gameOver = false;
 
@@ -82,6 +82,7 @@ public class ServerMain extends SimpleApplication {
     @Override
     @SuppressWarnings("empty-statement")
     public void simpleInitApp() {
+        getFlyByCamera().setEnabled(false);
         String msg = "";
         boolean notfind = true;
         while (notfind) {
@@ -109,7 +110,7 @@ public class ServerMain extends SimpleApplication {
                 notfind = false;
         };
         player.setUserData("objid", ++ObjectsCount);
-        player.setUserData("radius", Integer.parseInt(msg) );
+        player.setUserData("radius", Float.parseFloat(msg) );
         player.addControl(new PlayerControl(dm,width, height));
         dm.SendMessage(
                 DataManager.MessageCode.SimpleInitApp.value(),
@@ -175,44 +176,7 @@ public class ServerMain extends SimpleApplication {
         return new Vector3f(FastMath.cos(angle), FastMath.sin(angle), 0f);
     }
     
-     private Vector3f getAimDirection() {
-        Vector2f mouse = inputManager.getCursorPosition();
-        Vector3f playerPos = player.getLocalTranslation();
-        Vector3f diff = new Vector3f(mouse.x - playerPos.x,
-                                    mouse.y - playerPos.y, 0f);
-        return diff.normalizeLocal();
-    }
      
-    private Spatial getSpatial(String name) {
-        Node node = new Node(name);
-        // load picture
-        Picture pic;
-        pic = new Picture(name);
-        Texture2D tex = (Texture2D)assetManager.loadTexture(
-                "Textures/"+name+".png");
-        pic.setTexture(assetManager, tex, true);
-
-        // adjust picture
-        float width = tex.getImage().getWidth();
-        float height = tex.getImage().getHeight();
-        pic.setWidth(width);
-        pic.setHeight(height);
-        pic.move(-width/2f, -height/2f, 0);
-
-        // add a material to the picture
-        Material picMat = new Material(assetManager,
-                "Common/MatDefs/Gui/Gui.j3md");
-        picMat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.AlphaAdditive);
-        node.setMaterial(picMat);
-
-        // set the radius of the spatial
-        // using width only as a simple approximation
-        node.setUserData("radius", width/2);
-
-        // attach the picture to the node and return it
-        node.attachChild(pic);
-        return node;
-    }
 
     
     private void spawnBullets() 
@@ -252,7 +216,7 @@ public class ServerMain extends SimpleApplication {
                             DataManager.MessageCode.CreateBullet.value(), 
                             msg);
 
-            Spatial bullet2 = getSpatial("Bullet");
+            Spatial bullet2 = new Node("Bullet");
             finalOffset = aim.add(offset.negate()).mult(30);
             trans = player.getLocalTranslation().add(finalOffset);
             bullet2.setLocalTranslation(trans);
@@ -301,7 +265,7 @@ public class ServerMain extends SimpleApplication {
         seeker.setUserData("objid", ++ObjectsCount);
 
         // Send spawnPosition and Objects count
-        int id = seeker.getUserData("objid");
+        long id = seeker.getUserData("objid");
         Vector3f tr = seeker.getLocalTranslation();
         String msg = String.valueOf(id)
                 + " " + String.valueOf(tr.x)
@@ -326,7 +290,7 @@ public class ServerMain extends SimpleApplication {
         wanderer.setUserData("objid", ++ObjectsCount);
         
         // Send spawnPosition and Objects count
-        int id = wanderer.getUserData("objid");
+        long id = wanderer.getUserData("objid");
         Vector3f tr = wanderer.getLocalTranslation();
         String msg = String.valueOf(id)
                 + " " + String.valueOf(tr.x)
