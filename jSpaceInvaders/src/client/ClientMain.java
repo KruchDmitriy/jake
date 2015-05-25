@@ -31,15 +31,15 @@ import java.util.logging.Logger;
 public class ClientMain extends SimpleApplication
     implements ActionListener,
                AnalogListener {
-    
+
     public static Socket socket;
     public static InputStream sin;
     public static OutputStream sout;
     public static DataInputStream in;
     public static DataOutputStream out;
-    
+
     public static DataManager dm;
-    
+
     private Spatial player;
 
     private long bulletCooldown;
@@ -77,7 +77,7 @@ public class ClientMain extends SimpleApplication
 
     @Override
     public void simpleInitApp() {
-        
+
         dm.SendMessage(
                 DataManager.MessageCode.SimpleInitApp.value(),
                 DataManager.MessageCode.WidthAndHeight.value(),
@@ -114,12 +114,12 @@ public class ClientMain extends SimpleApplication
         player.setUserData("alive", true);
         player.move(settings.getWidth()/2, settings.getHeight()/2, 0f);
         player.addControl(new PlayerControl(dm));
-        
+
         dm.SendMessage(
                 DataManager.MessageCode.SimpleInitApp.value(),
                 DataManager.MessageCode.PlayerRadius.value(),
                 String.valueOf(player.getUserData("radius")));
-        
+
         String msg = "";
         boolean notfind = true;
         while (notfind) {
@@ -129,9 +129,9 @@ public class ClientMain extends SimpleApplication
              if (!msg.equals(""))
                  notfind = false;
         };
-        
+
         player.setUserData("objid", Long.parseLong(msg));
-        
+
 
         bulletNode = new Node("bullets");
         enemyNode = new Node("enemies");
@@ -141,7 +141,7 @@ public class ClientMain extends SimpleApplication
         guiNode.attachChild(blackHoleNode);
         guiNode.attachChild(bulletNode);
         guiNode.attachChild(player);
-        
+
         FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
         BloomFilter bloom = new BloomFilter();
         bloom.setBloomIntensity(2f);
@@ -249,12 +249,12 @@ public class ClientMain extends SimpleApplication
                     String msg = String.valueOf(aim.x) + " " +
                                  String.valueOf(aim.y) + " " +
                                  String.valueOf(aim.z);
-                    
+
                     dm.SendMessage(
                             DataManager.MessageCode.OnAnalog.value(),
-                            DataManager.MessageCode.CreateBullet.value(), 
+                            DataManager.MessageCode.CreateBullet.value(),
                             msg);
-                    
+
                     msg = "";
                     while (msg.equals("")){
                         msg = dm.FindRecord(DataManager.MessageCode.OnAnalog.value(),
@@ -265,7 +265,7 @@ public class ClientMain extends SimpleApplication
                     Vector3f pos = new Vector3f(Float.valueOf(split[1]),
                     Float.valueOf(split[2]),
                     Float.valueOf(split[3]));
-                    
+
                     Spatial bullet = getSpatial("Bullet");
                     bullet.setUserData("objid", id);
                     bullet.setLocalTranslation(pos);
@@ -274,7 +274,7 @@ public class ClientMain extends SimpleApplication
                                               settings.getWidth(),
                                               settings.getHeight()));
                     bulletNode.attachChild(bullet);
-                    
+
                     msg = "";
                     while (msg.equals("")){
                         msg = dm.FindRecord(DataManager.MessageCode.OnAnalog.value(),
@@ -285,7 +285,7 @@ public class ClientMain extends SimpleApplication
                     pos = new Vector3f(Float.valueOf(split[1]),
                     Float.valueOf(split[2]),
                     Float.valueOf(split[3]));
-                    
+
                     Spatial bullet2 = getSpatial("Bullet");
                     bullet2.setUserData("objid", id);
                     bullet2.setLocalTranslation(pos);
@@ -316,14 +316,14 @@ public class ClientMain extends SimpleApplication
         for (int i = 0; i < newSeekers.size(); i++) {
             createSeeker(newSeekers.get(i));
         }
-        
+
         List<String> newWanderers = dm.FindAllRecords(
                 DataManager.MessageCode.SpawnFunction.value(),
                 DataManager.MessageCode.CreateWanderer.value());
         for (int i = 0; i < newWanderers.size(); i++) {
             createWanderer(newWanderers.get(i));
         }
-        
+
     }
 
     private void createSeeker(String msg) {
@@ -333,7 +333,7 @@ public class ClientMain extends SimpleApplication
         float x = Float.parseFloat(split[1]);
         float y = Float.parseFloat(split[2]);
         float z = Float.parseFloat(split[3]);
-        
+
         Spatial seeker = getSpatial("Seeker");
         seeker.setLocalTranslation(new Vector3f(x,y,z));
         seeker.addControl(new SeekerControl(dm));
@@ -349,7 +349,7 @@ public class ClientMain extends SimpleApplication
         float x = Float.parseFloat(split[1]);
         float y = Float.parseFloat(split[2]);
         float z = Float.parseFloat(split[3]);
-        
+
         Spatial wanderer = getSpatial("Wanderer");
         wanderer.setLocalTranslation(new Vector3f(x,y,z));
         wanderer.addControl(new WandererControl(dm));
@@ -369,45 +369,56 @@ public class ClientMain extends SimpleApplication
             sound.explosion();
             return;
         }
-        
+
         List<String> enemyDies = dm.FindAllRecords(
                 DataManager.MessageCode.HandleCollision.value(),
                 DataManager.MessageCode.EnemyDie.value());
-        
+
         for (int i = 0; i < enemyDies.size(); i++)
         {
-            int n = Integer.parseInt(enemyDies.get(i));
-            if (enemyNode.getChild(n).getName().equals("Seeker")) {
+            long id = Long.parseLong(enemyDies.get(i));
+            Spatial enemy = findSpatialByID(enemyNode, id);
+            if (enemy.getName().equals("Seeker")) {
                         hud.addPoints(2);
-                    } else if (enemyNode.getChild(n).getName().equals(
-                            "Wanderer")) {
+                    } else if (enemy.getName().equals("Wanderer")) {
                         hud.addPoints(1);
                     }
             sound.explosion();
-            enemyNode.detachChildAt(n);
+            enemyNode.detachChild(enemy);
         }
-        
+
         List<String> bulletsDies = dm.FindAllRecords(
                 DataManager.MessageCode.HandleCollision.value(),
                 DataManager.MessageCode.BulletDie.value());
-        
+
         for (int i = 0; i < bulletsDies.size(); i++)
         {
-            int n = Integer.parseInt(bulletsDies.get(i));
-            enemyNode.detachChildAt(n);
+            long id = Long.parseLong(bulletsDies.get(i));
+            Spatial bullet = findSpatialByID(bulletNode, id);
+            bulletNode.detachChild(bullet);
         }
-        
+
         List<String> blackHoleDies = dm.FindAllRecords(
                 DataManager.MessageCode.HandleCollision.value(),
                 DataManager.MessageCode.BlackHoleDie.value());
-        
+
         for (int i = 0; i < blackHoleDies.size(); i++)
         {
-            int n = Integer.parseInt(blackHoleDies.get(i));
-            enemyNode.detachChildAt(n);
+            long id = Long.parseLong(blackHoleDies.get(i));
+            Spatial blackHole = findSpatialByID(blackHoleNode, id);
+            blackHoleNode.detachChild(blackHole);
             sound.explosion();
         }
-       
+
+    }
+
+    private Spatial findSpatialByID(Node node, long id) {
+        for (int i = 0; i < node.getQuantity(); i++) {
+            Spatial s = node.getChild(i);
+            if ((Long)s.getUserData("objid") == id)
+                return s;
+        }
+        return null;
     }
 
     private void killPlayer() {
@@ -434,16 +445,17 @@ public class ClientMain extends SimpleApplication
 
     private void createBlackHole(String msg) {
         String[] split = msg.split(" ");
-        int id = Integer.parseInt(split[0]);
+        long id = Long.parseLong(split[0]);
         float x = Float.parseFloat(split[1]);
         float y = Float.parseFloat(split[2]);
         float z = Float.parseFloat(split[3]);
-        
-        
+
+
         Spatial blackHole = getSpatial("Black Hole");
         blackHole.setLocalTranslation(new Vector3f(x,y,z));
         blackHole.addControl(new BlackHoleControl(dm));
         blackHole.setUserData("active", false);
+        blackHole.setUserData("objid", id);
         blackHoleNode.attachChild(blackHole);
     }
 }
