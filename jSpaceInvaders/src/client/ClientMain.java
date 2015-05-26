@@ -67,6 +67,9 @@ public class ClientMain extends SimpleApplication
             out = new DataOutputStream(sout);
         } catch (Exception x) {};
         dm = new DataManager(in,out);
+        dm.SendMessage(
+                    DataManager.MessageCode.SimpleInitApp.value(),
+                    DataManager.MessageCode.WhoAreYou.value(),"player");
         ClientMain app = new ClientMain();
         app.setPauseOnLostFocus(false);
         app.start();

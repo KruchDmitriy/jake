@@ -47,6 +47,8 @@ public class ServerMain extends SimpleApplication {
     public static void main(String[] args) {
         playersCount = 0;
         observersCount = 0;
+        width = 600;
+        height = 600;
         clistener = new ClientListener();
 
         odms = new ArrayList<DataManager>();
@@ -64,8 +66,6 @@ public class ServerMain extends SimpleApplication {
     public void simpleInitApp() {
         getFlyByCamera().setEnabled(false);
 
-        while (takeNewClients() != true);
-
         seekerRadius = 10;
         wandererRadius = 10;
         blackHoleRadius = 10;
@@ -76,20 +76,22 @@ public class ServerMain extends SimpleApplication {
         enemyNode = new Node("enemies");
         blackHoleNode = new Node("black holes");
 
+        while (takeNewClients() != true);
+
         guiNode.attachChild(playerNode);
         guiNode.attachChild(bulletNode);
         guiNode.attachChild(enemyNode);
         guiNode.attachChild(blackHoleNode);
     }
 
-    private void connect_player(DataManager dm) {
+    private void connect_player(DataManager dm, int id) {
         String msg = String.valueOf(width) + " " + String.valueOf(height);
         dm.SendMessage(
                 DataManager.MessageCode.SimpleInitApp.value(),
                 DataManager.MessageCode.WidthAndHeight.value(),
                 msg);
 
-        Spatial player = new Node("player");
+        Spatial player = new Node("Player");
 
         Boolean notfind = true;
         while (notfind) {
@@ -110,7 +112,7 @@ public class ServerMain extends SimpleApplication {
         player.setUserData("alive", true);
         player.move(width/2, height/2, 0f);
 
-        player.setUserData("dm", dm);
+        player.setUserData("dm", id);
         playerNode.attachChild(player);
     }
 
@@ -127,10 +129,11 @@ public class ServerMain extends SimpleApplication {
     }
 
     private Boolean takeNewClients() {
-        int delta = (observersCount + playersCount) - clistener.getNumClients();
+        int delta = clistener.getNumClients() - (observersCount + playersCount);
 
         for (int i = 0; i < delta; i++) {
-            DataManager dm = clistener.dms.get((observersCount + playersCount) + i);
+            DataManager dm = clistener.dms.get(
+                    (observersCount + playersCount) + i);
 
             String msg = "";
             while (msg.equals("")) {
@@ -140,11 +143,13 @@ public class ServerMain extends SimpleApplication {
             }
 
             if (msg.equals("observer")) {
+                observersCount++;
                 connect_observer(dm);
                 odms.add(dm);
             } else {
-                connect_player(dm);
+                connect_player(dm, playersCount++);
                 pdms.add(dm);
+                return true;
             }
         }
         return false;
@@ -222,7 +227,7 @@ public class ServerMain extends SimpleApplication {
 
     private void spawnBullets(Spatial player)
     {
-        DataManager dm = (DataManager)player.getUserData("dm");
+        DataManager dm = pdms.get((Integer)player.getUserData("dm"));
         List<String> msgs = dm.FindAllRecords(
                             DataManager.MessageCode.OnAnalog.value(),
                             DataManager.MessageCode.CreateBullet.value());
@@ -394,7 +399,7 @@ public class ServerMain extends SimpleApplication {
                     Spatial player = playerNode.getChild(j);
                     if (checkCollision(player,
                                         enemyNode.getChild(i))) {
-                        DataManager dm = player.getUserData("dm");
+                        DataManager dm = pdms.get((Integer)player.getUserData("dm"));
                         dm.SendMessage(
                                 DataManager.MessageCode.HandleCollision.value(),
                                 DataManager.MessageCode.PlayerDie.value(),
@@ -460,7 +465,7 @@ public class ServerMain extends SimpleApplication {
                 for (int j = 0; j < playerNode.getQuantity(); j++) {
                     Spatial player = playerNode.getChild(j);
                     if (checkCollision(player, blackHole)) {
-                        DataManager dm = player.getUserData("dm");
+                        DataManager dm = pdms.get((Integer)player.getUserData("dm"));
                         dm.SendMessage(
                                 DataManager.MessageCode.HandleCollision.value(),
                                 DataManager.MessageCode.PlayerDie.value(),
