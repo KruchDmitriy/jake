@@ -41,7 +41,6 @@ public class ClientListener implements Runnable {
 
     public void run() {
         try {
-            // Создаем слушатель
             ServerSocket socketListener;
             socketListener = new ServerSocket(port);
 

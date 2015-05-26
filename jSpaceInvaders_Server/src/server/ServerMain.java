@@ -83,24 +83,15 @@ public class ServerMain extends SimpleApplication {
     }
 
     private void connect_player(DataManager dm) {
-        String msg = "";
-        boolean notfind = true;
-        while (notfind) {
-            msg = dm.FindRecord(
-                    DataManager.MessageCode.SimpleInitApp.value(),
-                    DataManager.MessageCode.WidthAndHeight.value());
-            if (!msg.equals(""))
-                notfind = false;
-        }
-        String[] split = msg.split(" ");
-        width = Integer.parseInt(split[0]);
-        height = Integer.parseInt(split[1]);
-        Log("Width of canvas is " + String.valueOf(width));
-        Log("Height of canvas is " + String.valueOf(height));
+        String msg = String.valueOf(width) + " " + String.valueOf(height);
+        dm.SendMessage(
+                DataManager.MessageCode.SimpleInitApp.value(),
+                DataManager.MessageCode.WidthAndHeight.value(),
+                msg);
 
         Spatial player = new Node("player");
 
-        notfind = true;
+        Boolean notfind = true;
         while (notfind) {
             msg = dm.FindRecord(
                     DataManager.MessageCode.SimpleInitApp.value(),
@@ -126,7 +117,7 @@ public class ServerMain extends SimpleApplication {
     private void connect_observer(DataManager dm) {
         String msg = "";
         msg = String.valueOf(width) +
-                " " +
+              " " +
               String.valueOf(height);
 
         dm.SendMessage(
@@ -142,8 +133,9 @@ public class ServerMain extends SimpleApplication {
             DataManager dm = clistener.dms.get((observersCount + playersCount) + i);
 
             String msg = "";
-            while (msg.equals("")){
-                msg = dm.FindRecord(DataManager.MessageCode.SimpleInitApp.value(),
+            while (msg.equals("")) {
+                msg = dm.FindRecord(
+                        DataManager.MessageCode.SimpleInitApp.value(),
                     DataManager.MessageCode.WhoAreYou.value());
             }
 
@@ -231,7 +223,8 @@ public class ServerMain extends SimpleApplication {
     private void spawnBullets(Spatial player)
     {
         DataManager dm = (DataManager)player.getUserData("dm");
-        List<String> msgs = dm.FindAllRecords(DataManager.MessageCode.OnAnalog.value(),
+        List<String> msgs = dm.FindAllRecords(
+                            DataManager.MessageCode.OnAnalog.value(),
                             DataManager.MessageCode.CreateBullet.value());
 
         for (int i = 0; i < msgs.size(); i++)

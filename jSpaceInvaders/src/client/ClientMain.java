@@ -43,9 +43,6 @@ public class ClientMain extends SimpleApplication
     private Spatial player;
 
     private long bulletCooldown;
-    private long enemySpawnCooldown;
-    private float enemySpawnChance = 80;
-    private long spawnCooldownBlackHole;
 
     private boolean gameOver = false;
 
@@ -59,7 +56,7 @@ public class ClientMain extends SimpleApplication
 
     @SuppressWarnings("empty-statement")
     public static void main(String[] args) {
-        int port = 6666;
+        int port = 1234;
         String address = "127.0.0.1";
         try {
             InetAddress ipAddress = InetAddress.getByName(address);
@@ -77,11 +74,17 @@ public class ClientMain extends SimpleApplication
 
     @Override
     public void simpleInitApp() {
-
-        dm.SendMessage(
+        String msg = "";
+        while (msg.equals("")) {
+            msg = dm.FindRecord(
                 DataManager.MessageCode.SimpleInitApp.value(),
-                DataManager.MessageCode.WidthAndHeight.value(),
-                String.valueOf(settings.getWidth()) + " " + String.valueOf(settings.getHeight()));
+                DataManager.MessageCode.WidthAndHeight.value());
+        }
+
+        String[] w_h = msg.split(" ");
+        settings.setWidth(Integer.parseInt(w_h[0]));
+        settings.setWidth(Integer.parseInt(w_h[1]));
+
         // setup camera for 2D games
         cam.setParallelProjection(true);
         cam.setLocation(new Vector3f(0.0f, 0.0f, 0.5f));
@@ -120,7 +123,7 @@ public class ClientMain extends SimpleApplication
                 DataManager.MessageCode.PlayerRadius.value(),
                 String.valueOf(player.getUserData("radius")));
 
-        String msg = "";
+        msg = "";
         boolean notfind = true;
         while (notfind) {
              msg = dm.FindRecord(
@@ -128,7 +131,7 @@ public class ClientMain extends SimpleApplication
                      DataManager.MessageCode.PlayerID.value());
              if (!msg.equals(""))
                  notfind = false;
-        };
+        }
 
         player.setUserData("objid", Long.parseLong(msg));
 
