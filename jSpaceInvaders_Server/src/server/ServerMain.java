@@ -17,18 +17,17 @@ import java.util.Random;
  */
 public class ServerMain extends SimpleApplication {
     private static ClientListener clistener;
-    private static int clientsCount;
+    private static int playersCount;
+    private static int observersCount;
 
-    public static List<DataManager> dms;
+    public static List<DataManager> odms;
+    public static List<DataManager> pdms;
 
     public static int width;
     public static int height;
 
     public static long ObjectsCount;
 
-    private Spatial player;
-
-    private long bulletCooldown;
     private long enemySpawnCooldown;
     private float enemySpawnChance = 80;
     private long spawnCooldownBlackHole;
@@ -40,25 +39,18 @@ public class ServerMain extends SimpleApplication {
 
     private boolean gameOver = false;
 
+    private Node playerNode;
     private Node bulletNode;
     private Node enemyNode;
     private Node blackHoleNode;
 
     public static void main(String[] args) {
-        /*int port = 6666;
-        try {
-            ss = new ServerSocket(port);
-            socket = ss.accept();
-            sin = socket.getInputStream();
-            sout = socket.getOutputStream();
-            in = new DataInputStream(sin);
-            out = new DataOutputStream(sout);
-        } catch(Exception x) {}
-        dm = new DataManager(in,out);
-        outmutex = new Object();*/
-        clientsCount = 0;
+        playersCount = 0;
+        observersCount = 0;
         clistener = new ClientListener();
-        dms = new ArrayList<DataManager>();
+
+        odms = new ArrayList<DataManager>();
+        pdms = new ArrayList<DataManager>();
 
         ObjectsCount = 100000;
         ServerMain app = new ServerMain();
@@ -71,6 +63,26 @@ public class ServerMain extends SimpleApplication {
     @SuppressWarnings("empty-statement")
     public void simpleInitApp() {
         getFlyByCamera().setEnabled(false);
+
+        while (takeNewClients() != true);
+
+        seekerRadius = 10;
+        wandererRadius = 10;
+        blackHoleRadius = 10;
+        bulletRadius = 10;
+
+        playerNode = new Node("players");
+        bulletNode = new Node("bullets");
+        enemyNode = new Node("enemies");
+        blackHoleNode = new Node("black holes");
+
+        guiNode.attachChild(playerNode);
+        guiNode.attachChild(bulletNode);
+        guiNode.attachChild(enemyNode);
+        guiNode.attachChild(blackHoleNode);
+    }
+
+    private void connect_player(DataManager dm) {
         String msg = "";
         boolean notfind = true;
         while (notfind) {
@@ -79,15 +91,14 @@ public class ServerMain extends SimpleApplication {
                     DataManager.MessageCode.WidthAndHeight.value());
             if (!msg.equals(""))
                 notfind = false;
-        };
+        }
         String[] split = msg.split(" ");
         width = Integer.parseInt(split[0]);
         height = Integer.parseInt(split[1]);
         Log("Width of canvas is " + String.valueOf(width));
         Log("Height of canvas is " + String.valueOf(height));
 
-
-        player = new Node("player");
+        Spatial player = new Node("player");
 
         notfind = true;
         while (notfind) {
@@ -96,56 +107,96 @@ public class ServerMain extends SimpleApplication {
                     DataManager.MessageCode.PlayerRadius.value());
             if (!msg.equals(""))
                 notfind = false;
-        };
+        }
         player.setUserData("objid", ++ObjectsCount);
         player.setUserData("radius", Float.parseFloat(msg) );
-        player.addControl(new PlayerControl(dm,width, height));
+        player.addControl(new PlayerControl(dm, width, height));
         dm.SendMessage(
                 DataManager.MessageCode.SimpleInitApp.value(),
                 DataManager.MessageCode.PlayerID.value(),
                 String.valueOf(player.getUserData("objid")));
 
-
-        seekerRadius = 10;
-        wandererRadius = 10;
-        blackHoleRadius = 10;
-        bulletRadius = 10;
-
         player.setUserData("alive", true);
         player.move(width/2, height/2, 0f);
 
-        bulletNode = new Node("bullets");
-        enemyNode = new Node("enemies");
-        blackHoleNode = new Node("black holes");
+        player.setUserData("dm", dm);
+        playerNode.attachChild(player);
+    }
 
-        guiNode.attachChild(enemyNode);
-        guiNode.attachChild(blackHoleNode);
-        guiNode.attachChild(bulletNode);
-        guiNode.attachChild(player);
+    private void connect_observer(DataManager dm) {
+        String msg = "";
+        msg = String.valueOf(width) +
+                " " +
+              String.valueOf(height);
+
+        dm.SendMessage(
+                DataManager.MessageCode.Observer.value(),
+                DataManager.MessageCode.WidthAndHeight.value(),
+                msg);
     }
 
     private Boolean takeNewClients() {
-        long delta = clientsCount - clistener.getNumClients();
-        if (delta == 0) {
-            return false;
-        }
+        int delta = (observersCount + playersCount) - clistener.getNumClients();
 
         for (int i = 0; i < delta; i++) {
-            dms.add(clistener.dms.get(clientsCount + i));
-        }
+            DataManager dm = clistener.dms.get((observersCount + playersCount) + i);
 
-        return true;
+            String msg = "";
+            while (msg.equals("")){
+                msg = dm.FindRecord(DataManager.MessageCode.SimpleInitApp.value(),
+                    DataManager.MessageCode.WhoAreYou.value());
+            }
+
+            if (msg.equals("observer")) {
+                connect_observer(dm);
+                odms.add(dm);
+            } else {
+                connect_player(dm);
+                pdms.add(dm);
+            }
+        }
+        return false;
+    }
+
+    private Boolean gameIsOver() {
+        gameOver = false;
+        for (int i = 0; i < playerNode.getQuantity(); i++) {
+            gameOver = gameOver || (Boolean)playerNode.getChild(i).getUserData("alive");
+        }
+        return gameOver;
     }
 
     @Override
     public void simpleUpdate(float tpf) {
+        if (!gameIsOver()) {
+            spawnEnemies();
+            spawnBlackHoles();
+            for (int i = 0; i < playerNode.getQuantity(); i++) {
+                Spatial player = playerNode.getChild(i);
+                spawnBullets(player);
+            }
+            handleCollisions();
+            handleGravity(tpf);
+        }
+        takeNewClients();
+
+        /*
         if ((Boolean) player.getUserData("alive")) {
             spawnEnemies();
             spawnBlackHoles();
             spawnBullets();
             handleCollisions();
             handleGravity(tpf);
-        } else if ((System.currentTimeMillis() -
+        }
+        *
+        *
+        *
+         * Возможно респаунем потом
+         *
+         *
+         *
+         *
+         * else if ((System.currentTimeMillis() -
                 (Long)player.getUserData("dieTime")) > 4000f
                 && !gameOver) {
             // spawn player
@@ -155,7 +206,7 @@ public class ServerMain extends SimpleApplication {
                     0f);
             guiNode.attachChild(player);
             player.setUserData("alive", true);
-        }
+        }*/
         // send info to client
     }
 
@@ -177,12 +228,9 @@ public class ServerMain extends SimpleApplication {
         return new Vector3f(FastMath.cos(angle), FastMath.sin(angle), 0f);
     }
 
-
-
-
-    private void spawnBullets()
+    private void spawnBullets(Spatial player)
     {
-
+        DataManager dm = (DataManager)player.getUserData("dm");
         List<String> msgs = dm.FindAllRecords(DataManager.MessageCode.OnAnalog.value(),
                             DataManager.MessageCode.CreateBullet.value());
 
@@ -224,7 +272,7 @@ public class ServerMain extends SimpleApplication {
             bullet2.setUserData("objid", ++ObjectsCount);
             bullet2.setUserData("radius", bulletRadius);
             bullet2.addControl(
-                    new BulletControl( dm,
+                    new BulletControl(dm,
                     aim, settings.getWidth(), settings.getHeight()));
             bulletNode.attachChild(bullet2);
 
@@ -262,7 +310,9 @@ public class ServerMain extends SimpleApplication {
     private void createSeeker() {
         Spatial seeker = new Node("Seeker");
         seeker.setLocalTranslation(getSpawnPosition());
-        seeker.addControl(new SeekerControl(player,dm));
+        int player = new Random().nextInt(playerNode.getQuantity());
+        seeker.addControl(new SeekerControl(playerNode.getChild(player),
+                                            pdms, odms));
         seeker.setUserData("active", false);
         seeker.setUserData("radius", seekerRadius);
         seeker.setUserData("objid", ++ObjectsCount);
@@ -275,19 +325,29 @@ public class ServerMain extends SimpleApplication {
                 + " " + String.valueOf(tr.y)
                 + " " + String.valueOf(tr.z);
 
-        dm.SendMessage(
+        for (int i = 0; i < playersCount; i++) {
+            DataManager dm = pdms.get(i);
+            dm.SendMessage(
                 DataManager.MessageCode.SpawnFunction.value(),
                 DataManager.MessageCode.CreateSeeker.value(),
                 msg);
+        }
+
+        for (int i = 0; i < observersCount; i++) {
+            DataManager dm = odms.get(i);
+            dm.SendMessage(
+                DataManager.MessageCode.SpawnFunction.value(),
+                DataManager.MessageCode.CreateSeeker.value(),
+                msg);
+        }
 
         enemyNode.attachChild(seeker);
-
     }
 
     private void createWanderer() {
         Spatial wanderer = new Node("Wanderer");
         wanderer.setLocalTranslation(getSpawnPosition());
-        wanderer.addControl(new WandererControl(dm,width, height));
+        wanderer.addControl(new WandererControl(pdms, odms, width, height));
         wanderer.setUserData("active", false);
         wanderer.setUserData("radius", wandererRadius);
         wanderer.setUserData("objid", ++ObjectsCount);
@@ -300,21 +360,36 @@ public class ServerMain extends SimpleApplication {
                 + " " + String.valueOf(tr.y)
                 + " " + String.valueOf(tr.z);
 
-        dm.SendMessage(
+        for (int i = 0; i < observersCount; i++) {
+            DataManager dm = odms.get(i);
+            dm.SendMessage(
                 DataManager.MessageCode.SpawnFunction.value(),
                 DataManager.MessageCode.CreateWanderer.value(),
                 msg);
+        }
+
+        for (int i = 0; i < playersCount; i++) {
+            DataManager dm = pdms.get(i);
+            dm.SendMessage(
+                DataManager.MessageCode.SpawnFunction.value(),
+                DataManager.MessageCode.CreateWanderer.value(),
+                msg);
+        }
 
         enemyNode.attachChild(wanderer);
-
     }
 
     private Vector3f getSpawnPosition() {
         Vector3f pos;
-        do {
+        /*
+         * Не знаю как просто обобщить...
+         *
+         * do {
             pos = new Vector3f(new Random().nextInt(settings.getWidth()),
                     new Random().nextInt(settings.getHeight()), 0);
-        } while (pos.distanceSquared(player.getLocalTranslation()) < 8000);
+        } while (pos.distanceSquared(player.getLocalTranslation()) < 8000);*/
+        pos = new Vector3f(new Random().nextInt(settings.getWidth()),
+                    new Random().nextInt(settings.getHeight()), 0);
         return pos;
     }
 
@@ -322,13 +397,18 @@ public class ServerMain extends SimpleApplication {
         // should the player die?
         for (int i = 0; i < enemyNode.getQuantity(); i++) {
             if ((Boolean) enemyNode.getChild(i).getUserData("active")) {
-                if (checkCollision(player, enemyNode.getChild(i))) {
-                    dm.SendMessage(
-                            DataManager.MessageCode.HandleCollision.value(),
-                            DataManager.MessageCode.PlayerDie.value(),
-                            "playerDie");
-                    killPlayer();
-                    return;
+                for (int j = 0; j < playerNode.getQuantity(); j++) {
+                    Spatial player = playerNode.getChild(j);
+                    if (checkCollision(player,
+                                        enemyNode.getChild(i))) {
+                        DataManager dm = player.getUserData("dm");
+                        dm.SendMessage(
+                                DataManager.MessageCode.HandleCollision.value(),
+                                DataManager.MessageCode.PlayerDie.value(),
+                                "playerDie");
+                        killPlayer(player);
+                        return;
+                    }
                 }
             }
 
@@ -343,14 +423,34 @@ public class ServerMain extends SimpleApplication {
                             "Wanderer")) {
 
                     }
-                    dm.SendMessage(
+
+                    for (int k = 0; k < playersCount; k++) {
+                        DataManager dm = pdms.get(k);
+                        dm.SendMessage(
                             DataManager.MessageCode.HandleCollision.value(),
                             DataManager.MessageCode.EnemyDie.value(),
-                            String.valueOf(enemyNode.getChild(i).getUserData("objid")));
-                    dm.SendMessage(
+                            String.valueOf(
+                                enemyNode.getChild(i).getUserData("objid")));
+                        dm.SendMessage(
                             DataManager.MessageCode.HandleCollision.value(),
                             DataManager.MessageCode.BulletDie.value(),
-                            String.valueOf(bulletNode.getChild(j).getUserData("objid")));
+                            String.valueOf(
+                                bulletNode.getChild(j).getUserData("objid")));
+                    }
+
+                    for (int k = 0; k < observersCount; k++) {
+                        DataManager dm = odms.get(k);
+                        dm.SendMessage(
+                            DataManager.MessageCode.HandleCollision.value(),
+                            DataManager.MessageCode.EnemyDie.value(),
+                            String.valueOf(
+                                enemyNode.getChild(i).getUserData("objid")));
+                        dm.SendMessage(
+                            DataManager.MessageCode.HandleCollision.value(),
+                            DataManager.MessageCode.BulletDie.value(),
+                            String.valueOf(
+                                bulletNode.getChild(j).getUserData("objid")));
+                    }
 
                     enemyNode.detachChildAt(i);
                     bulletNode.detachChildAt(j);
@@ -364,41 +464,80 @@ public class ServerMain extends SimpleApplication {
             Spatial blackHole = blackHoleNode.getChild(i);
             if ((Boolean) blackHole.getUserData("active")) {
                 // player
-                if (checkCollision(player, blackHole)) {
-                    dm.SendMessage(
-                            DataManager.MessageCode.HandleCollision.value(),
-                            DataManager.MessageCode.PlayerDie.value(),
-                            "playerDie");
-                    killPlayer();
-                    return;
+                for (int j = 0; j < playerNode.getQuantity(); j++) {
+                    Spatial player = playerNode.getChild(j);
+                    if (checkCollision(player, blackHole)) {
+                        DataManager dm = player.getUserData("dm");
+                        dm.SendMessage(
+                                DataManager.MessageCode.HandleCollision.value(),
+                                DataManager.MessageCode.PlayerDie.value(),
+                                "playerDie");
+                        killPlayer(player);
+                        return;
+                    }
                 }
 
                 // enemies
                 for (int j = 0; j < enemyNode.getQuantity(); j++) {
                     if (checkCollision(enemyNode.getChild(j), blackHole)) {
-                         dm.SendMessage(
-                            DataManager.MessageCode.HandleCollision.value(),
-                            DataManager.MessageCode.EnemyDie.value(),
-                            String.valueOf(enemyNode.getChild(j).getUserData("objid")));
-                         enemyNode.detachChildAt(j);
+                        for (int k = 0; k < playersCount; k++) {
+                            DataManager dm = pdms.get(k);
+                            dm.SendMessage(
+                                DataManager.MessageCode.HandleCollision.value(),
+                                DataManager.MessageCode.EnemyDie.value(),
+                                String.valueOf(
+                                   enemyNode.getChild(j).getUserData("objid")));
+                        }
+                        for (int k = 0; k < observersCount; k++) {
+                            DataManager dm = odms.get(k);
+                            dm.SendMessage(
+                                DataManager.MessageCode.HandleCollision.value(),
+                                DataManager.MessageCode.EnemyDie.value(),
+                                String.valueOf(
+                                   enemyNode.getChild(j).getUserData("objid")));
+                        }
+                        enemyNode.detachChildAt(j);
                     }
                 }
 
                 // bullets
                 for (int j = 0; j < bulletNode.getQuantity(); j++) {
                     if (checkCollision(bulletNode.getChild(j), blackHole)) {
-                        dm.SendMessage(
-                            DataManager.MessageCode.HandleCollision.value(),
-                            DataManager.MessageCode.BulletDie.value(),
-                            String.valueOf(bulletNode.getChild(j).getUserData("objid")));
+                        for (int k = 0; k < playersCount; k++) {
+                            DataManager dm = pdms.get(k);
+                            dm.SendMessage(
+                                DataManager.MessageCode.HandleCollision.value(),
+                                DataManager.MessageCode.BulletDie.value(),
+                                String.valueOf(
+                                  bulletNode.getChild(j).getUserData("objid")));
+                        }
+                        for (int k = 0; k < observersCount; k++) {
+                            DataManager dm = odms.get(k);
+                            dm.SendMessage(
+                                DataManager.MessageCode.HandleCollision.value(),
+                                DataManager.MessageCode.BulletDie.value(),
+                                String.valueOf(
+                                  bulletNode.getChild(j).getUserData("objid")));
+                        }
+
                         bulletNode.detachChildAt(j);
                         blackHole.getControl(BlackHoleControl.class).wasShot();
                         if (blackHole.getControl(
                                 BlackHoleControl.class).isDead()) {
-                            dm.SendMessage(
-                                DataManager.MessageCode.HandleCollision.value(),
-                                DataManager.MessageCode.BlackHoleDie.value(),
-                                String.valueOf(blackHole.getUserData("objid")));
+                            for (int k = 0; k < playersCount; k++) {
+                                DataManager dm = pdms.get(k);
+                                dm.SendMessage(
+                                    DataManager.MessageCode.HandleCollision.value(),
+                                    DataManager.MessageCode.BlackHoleDie.value(),
+                                    String.valueOf(blackHole.getUserData("objid")));
+                            }
+                            for (int k = 0; k < observersCount; k++) {
+                                DataManager dm = odms.get(k);
+                                dm.SendMessage(
+                                    DataManager.MessageCode.HandleCollision.value(),
+                                    DataManager.MessageCode.BlackHoleDie.value(),
+                                    String.valueOf(blackHole.getUserData("objid")));
+                            }
                             blackHoleNode.detachChild(blackHole);
                             break;
                         }
@@ -416,7 +555,7 @@ public class ServerMain extends SimpleApplication {
         return distance <= maxDistance;
     }
 
-    private void killPlayer() {
+    private void killPlayer(Spatial player) {
         player.removeFromParent();
         player.getControl(PlayerControl.class).reset();
         player.setUserData("alive", false);
@@ -439,7 +578,7 @@ public class ServerMain extends SimpleApplication {
     private void createBlackHole() {
         Spatial blackHole = new Node("Black Hole");
         blackHole.setLocalTranslation(getSpawnPosition());
-        blackHole.addControl(new BlackHoleControl(dm));
+        blackHole.addControl(new BlackHoleControl(pdms, odms));
         blackHole.setUserData("active", false);
         blackHole.setUserData("radius", blackHoleRadius);
         blackHole.setUserData("objid", ++ObjectsCount);
@@ -452,10 +591,13 @@ public class ServerMain extends SimpleApplication {
                 + " " + String.valueOf(tr.y)
                 + " " + String.valueOf(tr.z);
 
-        dm.SendMessage(
+        for (int i = 0; i < playersCount; i++) {
+            DataManager dm = pdms.get(i);
+            dm.SendMessage(
                 DataManager.MessageCode.SpawnFunction.value(),
                 DataManager.MessageCode.CreateBlackHole.value(),
                 msg);
+        }
 
         blackHoleNode.attachChild(blackHole);
     }
@@ -469,8 +611,11 @@ public class ServerMain extends SimpleApplication {
             int radius = 250;
 
             // check player
-            if (isNearby(player, blackHole, radius)) {
-                applyGravity(blackHole, player, tpf);
+            for (int j = 0; j < playerNode.getQuantity(); i++) {
+                Spatial player = playerNode.getChild(i);
+                if (isNearby(player, blackHole, radius)) {
+                    applyGravity(blackHole, player, tpf);
+                }
             }
 
             // check bullets

@@ -4,29 +4,31 @@
  */
 package server;
 
-import com.jme3.math.ColorRGBA;
-import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
-import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
-import com.jme3.ui.Picture;
+import java.util.List;
 
 /**
  *
  * @author dmitry
  */
 public class SeekerControl extends AbstractControl {
-    private DataManager dm;
     private Spatial player;
     private Vector3f velocity;
     private long spawnTime;
 
-    public SeekerControl(Spatial player, DataManager dm) {
+    private static List<DataManager> odms;
+    private static List<DataManager> pdms;
+
+    public SeekerControl(Spatial player,
+                         List<DataManager> pdms,
+                         List<DataManager> odms) {
         this.player = player;
-        this.dm = dm;
+        this.odms = odms;
+        this.pdms = pdms;
         velocity = new Vector3f(0f, 0f, 0f);
         spawnTime = System.currentTimeMillis();
     }
@@ -49,8 +51,8 @@ public class SeekerControl extends AbstractControl {
             if (velocity != Vector3f.ZERO) {
                 spatial.rotateUpTo(vel);
             }
-            
-           
+
+
             // to send
             String msg;
             msg = String.valueOf(spatial.getLocalTranslation().x) + " " +
@@ -59,17 +61,37 @@ public class SeekerControl extends AbstractControl {
                   String.valueOf(vel.x) + " " +
                   String.valueOf(vel.y) + " " +
                   String.valueOf(vel.z);
-            dm.SendMessage((Long)spatial.getUserData("objid"), 
+
+            for (int i = 0; i < pdms.size(); i++) {
+                DataManager dm = pdms.get(i);
+                dm.SendMessage((Long)spatial.getUserData("objid"),
                     DataManager.MessageCode.SeekerControlUpdate.value(),msg);
+            }
+            for (int i = 0; i < odms.size(); i++) {
+                DataManager dm = odms.get(i);
+                dm.SendMessage((Long)spatial.getUserData("objid"),
+                    DataManager.MessageCode.SeekerControlUpdate.value(),msg);
+            }
         } else {
             // handle the "active" status
             long dif = System.currentTimeMillis() - spawnTime;
             if (dif >= 1000f) {
                 spatial.setUserData("active", true);
-                dm.SendMessage((Long)spatial.getUserData("objid"), 
-                    DataManager.MessageCode.SeekerControlActive.value(), "active");
+
+                for (int i = 0; i < pdms.size(); i++) {
+                    DataManager dm = pdms.get(i);
+                    dm.SendMessage((Long)spatial.getUserData("objid"),
+                        DataManager.MessageCode.SeekerControlActive.value(),
+                        "active");
+                }
+                for (int i = 0; i < odms.size(); i++) {
+                    DataManager dm = odms.get(i);
+                    dm.SendMessage((Long)spatial.getUserData("objid"),
+                        DataManager.MessageCode.SeekerControlActive.value(),
+                        "active");
+                }
             }
-            
+
         }
     }
 

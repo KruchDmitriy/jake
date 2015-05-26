@@ -4,14 +4,12 @@
  */
 package server;
 
-import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
-import com.jme3.scene.Node;
 import com.jme3.scene.control.AbstractControl;
-import com.jme3.ui.Picture;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -19,15 +17,20 @@ import java.util.Random;
  * @author dmitry
  */
 public class WandererControl extends AbstractControl {
-    private DataManager dm;
+    private static List<DataManager> odms;
+    private static List<DataManager> pdms;
+
     private int screenWidth, screenHeight;
 
     private Vector3f velocity;
     private float directionAngle;
     private long spawnTime;
 
-    public WandererControl(DataManager dm, int screenWidth, int screenHeight) {
-        this.dm = dm;
+    public WandererControl(List<DataManager> pdms,
+            List<DataManager> odms,
+            int screenWidth, int screenHeight) {
+        this.odms = odms;
+        this.pdms = pdms;
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
 
@@ -66,23 +69,44 @@ public class WandererControl extends AbstractControl {
 
             // rotate the wanderer
             spatial.rotate(0f, 0f, tpf * 2f);
-            
+
             // Send data to client
             String msg;
             msg = String.valueOf(spatial.getLocalTranslation().x) + " " +
                   String.valueOf(spatial.getLocalTranslation().y) + " " +
                   String.valueOf(spatial.getLocalTranslation().z) + " ";
-            dm.SendMessage((Long)spatial.getUserData("objid"), 
+
+            for (int i = 0; i < pdms.size(); i++) {
+                DataManager dm = pdms.get(i);
+                dm.SendMessage((Long)spatial.getUserData("objid"),
                     DataManager.MessageCode.WandererControlUpdate.value(),msg);
+            }
+            for (int i = 0; i < odms.size(); i++) {
+                DataManager dm = odms.get(i);
+                dm.SendMessage((Long)spatial.getUserData("objid"),
+                    DataManager.MessageCode.WandererControlUpdate.value(),msg);
+            }
+
         } else {
             // handle the "active"-status
             long dif = System.currentTimeMillis() - spawnTime;
             if (dif >= 1000f) {
                 spatial.setUserData("active", true);
-                dm.SendMessage((Long)spatial.getUserData("objid"), 
-                    DataManager.MessageCode.WandererControlActive.value(), "active");
+                for (int i = 0; i < pdms.size(); i++) {
+                    DataManager dm = pdms.get(i);
+                    dm.SendMessage((Long)spatial.getUserData("objid"),
+                        DataManager.MessageCode.WandererControlActive.value(),
+                        "active");
+                }
+                for (int i = 0; i < odms.size(); i++) {
+                    DataManager dm = odms.get(i);
+                    dm.SendMessage((Long)spatial.getUserData("objid"),
+                        DataManager.MessageCode.WandererControlActive.value(),
+                        "active");
+                }
+
             }
-            
+
         }
     }
 

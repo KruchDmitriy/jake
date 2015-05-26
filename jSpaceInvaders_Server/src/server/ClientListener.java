@@ -31,7 +31,11 @@ public class ClientListener implements Runnable {
         new Thread(this).start();
     }
 
-    public long getNumClients() {
+    /**
+     *
+     * @return
+     */
+    public int getNumClients() {
         return ClientsCount;
     }
 
