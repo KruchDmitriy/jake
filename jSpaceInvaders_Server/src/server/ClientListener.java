@@ -12,36 +12,46 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
  * @author dmitry
  */
 public class ClientListener implements Runnable {
-    public static long ClientsCount;
+    private int port = 1234;
+    public static int ClientsCount;
+    public List<DataManager> dms;
 
+    @SuppressWarnings("CallToThreadStartDuringObjectConstruction")
     public ClientListener() {
         ClientsCount = 0;
+        dms = new ArrayList<DataManager>();
+        new Thread(this).start();
+    }
+
+    public long getNumClients() {
+        return ClientsCount;
     }
 
     public void run() {
         try {
             // Создаем слушатель
             ServerSocket socketListener;
-            socketListener = new ServerSocket(1234);
+            socketListener = new ServerSocket(port);
 
             while (true) {
                 Socket client = null;
                 while (client == null) {
                     client = socketListener.accept();
-                    ClientsCount++;
                 }
                 InputStream sin = client.getInputStream();
                 OutputStream sout = client.getOutputStream();
                 DataInputStream in = new DataInputStream(sin);
                 DataOutputStream out = new DataOutputStream(sout);
-                DataManager dm = new DataManager(in,out);
-                // new ClientThread(client); Создаем новый поток, которому передаем сокет
+                dms.add(new DataManager(in,out));
+                ClientsCount++;
             }
         } catch (SocketException e) {
             System.err.println("Socket exception");

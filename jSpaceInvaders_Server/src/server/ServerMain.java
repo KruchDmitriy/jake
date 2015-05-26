@@ -1,44 +1,25 @@
 package server;
 
 import com.jme3.app.SimpleApplication;
-import com.jme3.input.controls.ActionListener;
-import com.jme3.input.controls.AnalogListener;
-import com.jme3.system.AppSettings;
-import com.jme3.material.Material;
-import com.jme3.material.RenderState;
-import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
-import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import com.jme3.scene.shape.Box;
-import com.jme3.texture.Texture2D;
-import com.jme3.ui.Picture;
-import java.net.*;
-import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * test
  * @author normenhansen
  */
 public class ServerMain extends SimpleApplication {
+    private static ClientListener clistener;
+    private static int clientsCount;
 
-    public static ServerSocket ss;
-    public static Socket socket;
-    public static InputStream sin;
-    public static OutputStream sout;
-    public static DataInputStream in;
-    public static DataOutputStream out;
-
-    public static DataManager dm;
-    public static Object outmutex;
+    public static List<DataManager> dms;
 
     public static int width;
     public static int height;
@@ -64,7 +45,7 @@ public class ServerMain extends SimpleApplication {
     private Node blackHoleNode;
 
     public static void main(String[] args) {
-        int port = 6666;
+        /*int port = 6666;
         try {
             ss = new ServerSocket(port);
             socket = ss.accept();
@@ -74,7 +55,11 @@ public class ServerMain extends SimpleApplication {
             out = new DataOutputStream(sout);
         } catch(Exception x) {}
         dm = new DataManager(in,out);
-        outmutex = new Object();
+        outmutex = new Object();*/
+        clientsCount = 0;
+        clistener = new ClientListener();
+        dms = new ArrayList<DataManager>();
+
         ObjectsCount = 100000;
         ServerMain app = new ServerMain();
         app.setShowSettings(false);
@@ -137,6 +122,19 @@ public class ServerMain extends SimpleApplication {
         guiNode.attachChild(blackHoleNode);
         guiNode.attachChild(bulletNode);
         guiNode.attachChild(player);
+    }
+
+    private Boolean takeNewClients() {
+        long delta = clientsCount - clistener.getNumClients();
+        if (delta == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < delta; i++) {
+            dms.add(clistener.dms.get(clientsCount + i));
+        }
+
+        return true;
     }
 
     @Override
